@@ -1,0 +1,87 @@
+@using SkillSnap.Client.Models
+
+<div class="skill-tags">
+    @if (!string.IsNullOrEmpty(Title))
+    {
+        <h3 class="skill-tags-title">@Title</h3>
+    }
+    
+    @if (Skills != null && Skills.Any())
+    {
+        <div class="tags-container">
+            @foreach (var skill in Skills)
+            {
+                <div class="skill-tag @GetLevelClass(skill.Level)" @onclick="() => HandleSkillClick(skill)">
+                    <span class="skill-name">@skill.Name</span>
+                    @if (ShowLevel && !string.IsNullOrEmpty(skill.Level))
+                    {
+                        <span class="skill-level">@skill.Level</span>
+                    }
+                    @if (ShowLevel)
+                    {
+                        <div class="skill-level-indicator">
+                            @for (int i = 1; i <= 5; i++)
+                            {
+                                <div class="level-dot @(i <= GetLevelValue(skill.Level) ? "active" : "")"></div>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+    else if (Skills != null && !Skills.Any())
+    {
+        <div class="empty-skills">
+            <i class="fas fa-tags"></i>
+            <p>No skills to display</p>
+        </div>
+    }
+    else
+    {
+        <div class="loading-skills">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading skills...</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<Skill>? Skills { get; set; }
+    [Parameter] public string Title { get; set; } = "Skills";
+    [Parameter] public bool ShowLevel { get; set; } = true;
+    [Parameter] public bool Clickable { get; set; } = false;
+    [Parameter] public EventCallback<Skill> OnSkillSelected { get; set; }
+
+    private string GetLevelClass(string level)
+    {
+        return level?.ToLower() switch
+        {
+            "beginner" or "basic" => "level-beginner",
+            "intermediate" or "medium" => "level-intermediate",
+            "advanced" or "expert" => "level-advanced",
+            "professional" or "master" => "level-professional",
+            _ => "level-default"
+        };
+    }
+
+    private int GetLevelValue(string level)
+    {
+        return level?.ToLower() switch
+        {
+            "beginner" or "basic" => 1,
+            "intermediate" or "medium" => 3,
+            "advanced" or "expert" => 4,
+            "professional" or "master" => 5,
+            _ => 2
+        };
+    }
+
+    private async Task HandleSkillClick(Skill skill)
+    {
+        if (Clickable && OnSkillSelected.HasDelegate)
+        {
+            await OnSkillSelected.InvokeAsync(skill);
+        }
+    }
+}

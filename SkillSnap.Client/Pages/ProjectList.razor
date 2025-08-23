@@ -1,0 +1,71 @@
+@using SkillSnap.Client.Models
+
+<div class="project-list">
+    <h2 class="project-list-title">Projects</h2>
+    
+    @if (Projects != null && Projects.Any())
+    {
+        <div class="projects-grid">
+            @foreach (var project in Projects)
+            {
+                <div class="project-card">
+                    <div class="project-image">
+                        @if (!string.IsNullOrEmpty(project.ImageUrl))
+                        {
+                            <img src="@project.ImageUrl" alt="@project.Title" class="project-img" />
+                        }
+                        else
+                        {
+                            <div class="project-img-placeholder">
+                                <i class="fas fa-folder-open"></i>
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="project-content">
+                        <h3 class="project-title">@project.Title</h3>
+                        
+                        @if (!string.IsNullOrEmpty(project.Description))
+                        {
+                            <p class="project-description">@project.Description</p>
+                        }
+                        
+                        <div class="project-actions">
+                            <button class="btn btn-primary" @onclick="() => ViewProject(project.Id)">
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else if (Projects != null && !Projects.Any())
+    {
+        <div class="empty-state">
+            <i class="fas fa-folder-open"></i>
+            <h3>No Projects Found</h3>
+            <p>There are no projects to display at the moment.</p>
+        </div>
+    }
+    else
+    {
+        <div class="loading-state">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading projects...</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<Project>? Projects { get; set; }
+    [Parameter] public EventCallback<int> OnProjectSelected { get; set; }
+
+    private async Task ViewProject(int projectId)
+    {
+        if (OnProjectSelected.HasDelegate)
+        {
+            await OnProjectSelected.InvokeAsync(projectId);
+        }
+    }
+}

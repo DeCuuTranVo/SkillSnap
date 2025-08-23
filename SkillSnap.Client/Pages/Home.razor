@@ -1,0 +1,105 @@
+﻿@page "/"
+@using SkillSnap.Client.Models
+
+<PageTitle>SkillSnap - Portfolio Showcase</PageTitle>
+
+<div class="hero-section">
+    <img src="https://picsum.photos/1200/400?random=1" alt="Portfolio showcase" class="hero-image" />
+    <div class="hero-content">
+        <h1>Welcome to SkillSnap!</h1>
+        <p>Discover amazing portfolios and showcase your skills.</p>
+    </div>
+</div>
+
+<h2>Featured Portfolio</h2>
+
+<ProfileCard User="@sampleUser" />
+
+<div style="margin-top: 2rem;">
+    <SkillTags Skills="@sampleSkills" Title="Technical Skills" ShowLevel="true" Clickable="true" OnSkillSelected="@HandleSkillSelected" />
+</div>
+
+<div style="margin-top: 3rem;">
+    <ProjectList Projects="@sampleProjects" OnProjectSelected="@HandleProjectSelected" />
+</div>
+
+@code {
+    private PortfolioUser sampleUser = new PortfolioUser
+    {
+        Id = 1,
+        Name = "John Doe",
+        Bio = "Full-stack developer passionate about creating amazing web applications. I love working with modern technologies and building solutions that make a difference.",
+        ProfileImageUrl = "https://picsum.photos/120/120?random=2"
+    };
+
+    private List<Skill> sampleSkills = new List<Skill>
+    {
+        new Skill { Id = 1, Name = "C#", Level = "Advanced", PortfolioUserId = 1 },
+        new Skill { Id = 2, Name = "JavaScript", Level = "Advanced", PortfolioUserId = 1 },
+        new Skill { Id = 3, Name = "Blazor", Level = "Intermediate", PortfolioUserId = 1 },
+        new Skill { Id = 4, Name = "ASP.NET Core", Level = "Professional", PortfolioUserId = 1 },
+        new Skill { Id = 5, Name = "SQL Server", Level = "Intermediate", PortfolioUserId = 1 },
+        new Skill { Id = 6, Name = "React", Level = "Beginner", PortfolioUserId = 1 },
+        new Skill { Id = 7, Name = "Azure", Level = "Intermediate", PortfolioUserId = 1 },
+        new Skill { Id = 8, Name = "Git", Level = "Advanced", PortfolioUserId = 1 },
+        new Skill { Id = 9, Name = "Docker", Level = "Beginner", PortfolioUserId = 1 },
+        new Skill { Id = 10, Name = "Entity Framework", Level = "Advanced", PortfolioUserId = 1 }
+    };
+
+    private List<Project> sampleProjects = new List<Project>
+    {
+        new Project
+        {
+            Id = 1,
+            Title = "E-Commerce Platform",
+            Description = "A modern e-commerce platform built with ASP.NET Core and Blazor. Features include user authentication, product catalog, shopping cart, and payment integration.",
+            ImageUrl = "https://picsum.photos/400/200?random=3",
+            PortfolioUserId = 1
+        },
+        new Project
+        {
+            Id = 2,
+            Title = "Task Management App",
+            Description = "A collaborative task management application with real-time updates, team collaboration features, and project tracking capabilities.",
+            ImageUrl = "https://picsum.photos/400/200?random=4",
+            PortfolioUserId = 1
+        },
+        new Project
+        {
+            Id = 3,
+            Title = "Weather Dashboard",
+            Description = "Interactive weather dashboard with geolocation support, 7-day forecasts, and beautiful data visualizations using Chart.js.",
+            ImageUrl = "https://picsum.photos/400/200?random=5",
+            PortfolioUserId = 1
+        },
+        new Project
+        {
+            Id = 4,
+            Title = "Portfolio Website",
+            Description = "A responsive portfolio website showcasing development skills and projects. Built with modern web technologies and optimized for performance.",
+            ImageUrl = "https://picsum.photos/400/200?random=6",
+            PortfolioUserId = 1
+        }
+    };
+
+    private async Task HandleSkillSelected(Skill skill)
+    {
+        // Handle skill selection - could filter projects by skill or show skill details
+        await Task.CompletedTask;
+        // For demo purposes, just log the selection
+        // In a real app, you might navigate to skill details or filter content
+    }
+
+    private async Task HandleProjectSelected(int projectId)
+    {
+        // Handle project selection - could navigate to project details page
+        var selectedProject = sampleProjects.FirstOrDefault(p => p.Id == projectId);
+        if (selectedProject != null)
+        {
+            // For demo purposes, just show an alert
+            await Task.CompletedTask;
+            // In a real app, you might navigate to a project details page
+            // NavigationManager.NavigateTo($"/projects/{projectId}");
+        }
+    }
+}

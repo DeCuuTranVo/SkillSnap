@@ -1,0 +1,38 @@
+@using SkillSnap.Client.Models
+
+<div class="profile-card">
+    @if (User != null)
+    {
+        <div class="profile-header">
+            <div class="profile-image">
+                @if (!string.IsNullOrEmpty(User.ProfileImageUrl))
+                {
+                    <img src="@User.ProfileImageUrl" alt="@User.Name's profile picture" class="profile-img" />
+                }
+                else
+                {
+                    <div class="profile-img-placeholder">
+                        <i class="fas fa-user"></i>
+                    </div>
+                }
+            </div>
+            <div class="profile-info">
+                <h2 class="profile-name">@User.Name</h2>
+                @if (!string.IsNullOrEmpty(User.Bio))
+                {
+                    <p class="profile-bio">@User.Bio</p>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="loading">
+            <p>Loading profile...</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public PortfolioUser? User { get; set; }
+}

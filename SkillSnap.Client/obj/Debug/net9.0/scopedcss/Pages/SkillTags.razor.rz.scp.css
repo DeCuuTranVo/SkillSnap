@@ -1,0 +1,212 @@
+.skill-tags[b-0pmtd8kkc1] {
+    width: 100%;
+    margin: 16px 0;
+}
+
+.skill-tags-title[b-0pmtd8kkc1] {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+    margin: 0 0 16px 0;
+}
+
+.tags-container[b-0pmtd8kkc1] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: flex-start;
+}
+
+.skill-tag[b-0pmtd8kkc1] {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    cursor: default;
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.skill-tag.clickable[b-0pmtd8kkc1] {
+    cursor: pointer;
+}
+
+.skill-tag.clickable:hover[b-0pmtd8kkc1] {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Level-based styling */
+.skill-tag.level-beginner[b-0pmtd8kkc1] {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border-color: #bbdefb;
+}
+
+.skill-tag.level-intermediate[b-0pmtd8kkc1] {
+    background-color: #fff3e0;
+    color: #ef6c00;
+    border-color: #ffcc02;
+}
+
+.skill-tag.level-advanced[b-0pmtd8kkc1] {
+    background-color: #e8f5e8;
+    color: #2e7d32;
+    border-color: #a5d6a7;
+}
+
+.skill-tag.level-professional[b-0pmtd8kkc1] {
+    background-color: #fce4ec;
+    color: #c2185b;
+    border-color: #f8bbd9;
+}
+
+.skill-tag.level-default[b-0pmtd8kkc1] {
+    background-color: #f8f9fa;
+    color: #495057;
+    border-color: #dee2e6;
+}
+
+.skill-name[b-0pmtd8kkc1] {
+    font-weight: 600;
+}
+
+.skill-level[b-0pmtd8kkc1] {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    font-weight: 500;
+}
+
+.skill-level-indicator[b-0pmtd8kkc1] {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.level-dot[b-0pmtd8kkc1] {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    transition: background-color 0.2s ease;
+}
+
+.level-dot.active[b-0pmtd8kkc1] {
+    background-color: currentColor;
+}
+
+/* Hover effects for different levels */
+.skill-tag.level-beginner:hover[b-0pmtd8kkc1] {
+    background-color: #bbdefb;
+    border-color: #90caf9;
+}
+
+.skill-tag.level-intermediate:hover[b-0pmtd8kkc1] {
+    background-color: #ffcc02;
+    border-color: #ffc107;
+}
+
+.skill-tag.level-advanced:hover[b-0pmtd8kkc1] {
+    background-color: #a5d6a7;
+    border-color: #81c784;
+}
+
+.skill-tag.level-professional:hover[b-0pmtd8kkc1] {
+    background-color: #f8bbd9;
+    border-color: #f48fb1;
+}
+
+.skill-tag.level-default:hover[b-0pmtd8kkc1] {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+/* Empty and loading states */
+.empty-skills[b-0pmtd8kkc1],
+.loading-skills[b-0pmtd8kkc1] {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6c757d;
+}
+
+.empty-skills i[b-0pmtd8kkc1],
+.loading-skills i[b-0pmtd8kkc1] {
+    font-size: 32px;
+    margin-bottom: 12px;
+    display: block;
+    color: #dee2e6;
+}
+
+.empty-skills p[b-0pmtd8kkc1],
+.loading-skills p[b-0pmtd8kkc1] {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.fa-spin[b-0pmtd8kkc1] {
+    animation: fa-spin-b-0pmtd8kkc1 2s infinite linear;
+}
+
+@keyframes fa-spin-b-0pmtd8kkc1 {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 576px) {
+    .skill-tag[b-0pmtd8kkc1] {
+        font-size: 0.8rem;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+    
+    .skill-level[b-0pmtd8kkc1] {
+        font-size: 0.7rem;
+        padding: 1px 4px;
+    }
+    
+    .level-dot[b-0pmtd8kkc1] {
+        width: 5px;
+        height: 5px;
+    }
+    
+    .skill-tags-title[b-0pmtd8kkc1] {
+        font-size: 1.25rem;
+    }
+}
+
+/* Compact variant */
+.skill-tags.compact .skill-tag[b-0pmtd8kkc1] {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+}
+
+.skill-tags.compact .skill-level[b-0pmtd8kkc1] {
+    display: none;
+}
+
+.skill-tags.compact .skill-level-indicator[b-0pmtd8kkc1] {
+    display: none;
+}
+
+/* Large variant */
+.skill-tags.large .skill-tag[b-0pmtd8kkc1] {
+    padding: 12px 16px;
+    font-size: 1rem;
+    gap: 10px;
+}
+
+.skill-tags.large .skill-tags-title[b-0pmtd8kkc1] {
+    font-size: 1.75rem;
+}
