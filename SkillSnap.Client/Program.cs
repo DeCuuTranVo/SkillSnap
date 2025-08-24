@@ -7,16 +7,18 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-// In SkillSnap.Client/Program.cs
+// Configure HttpClient
+builder.Services.AddScoped(sp => new HttpClient 
+{ 
+    BaseAddress = new Uri("http://localhost:5217/") // Your API URL
+});
+
+// Register services
+builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<PortfolioUserService>();
 builder.Services.AddScoped<ProjectService>();
 builder.Services.AddScoped<SkillService>();
 
-// builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+var app = builder.Build();
 
-
-builder.Services.AddScoped(sp => new HttpClient 
-{ 
-    BaseAddress = new Uri("http://localhost:5217/") // Your API URL (HTTP, not HTTPS)
-});
-
-await builder.Build().RunAsync();
+await app.RunAsync();

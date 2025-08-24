@@ -1,0 +1,413 @@
+@page "/registerdebug"
+@using System.Text.Json
+
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient HttpClient
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3><i class="fas fa-bug"></i> Register Debug Page</h3>
+                    <p class="mb-0">Step-by-step debugging of registration flow</p>
+                </div>
+                <div class="card-body">
+                    <!-- Test Form -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Test Registration Data</h5>
+                            <div class="form-group mb-2">
+                                <label>Username:</label>
+                                <input @bind="testUsername" class="form-control" placeholder="testuser123" />
+                            </div>
+                            <div class="form-group mb-2">
+                                <label>Email:</label>
+                                <input @bind="testEmail" class="form-control" placeholder="test@example.com" />
+                            </div>
+                            <div class="form-group mb-2">
+                                <label>Password:</label>
+                                <input @bind="testPassword" type="password" class="form-control" placeholder="Test123!" />
+                            </div>
+                            <div class="form-group mb-2">
+                                <label>Confirm Password:</label>
+                                <input @bind="testConfirmPassword" type="password" class="form-control" placeholder="Test123!" />
+                            </div>
+                            <button @onclick="TestFullRegisterFlow" class="btn btn-warning" disabled="@isTestingInProgress">
+                                @if (isTestingInProgress)
+                                {
+                                    <span class="spinner-border spinner-border-sm"></span>
+                                }
+                                Test Full Register Flow
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Quick Tests</h5>
+                            <button @onclick="TestStep1_ApiCall" class="btn btn-outline-primary mb-2 d-block">1. Test API Call</button>
+                            <button @onclick="TestStep2_AuthServiceCall" class="btn btn-outline-primary mb-2 d-block">2. Test AuthService</button>
+                            <button @onclick="TestStep3_Navigation" class="btn btn-outline-primary mb-2 d-block">3. Test Navigation</button>
+                            <button @onclick="TestStep4_AuthCheck" class="btn btn-outline-primary mb-2 d-block">4. Test Auth State</button>
+                            <button @onclick="ClearLogs" class="btn btn-outline-secondary mb-2 d-block">Clear Logs</button>
+                        </div>
+                    </div>
+
+                    <!-- Current State -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <h5>Current Auth State</h5>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Is Authenticated:</span>
+                                    <span class="badge @(AuthService.IsAuthenticated ? "bg-success" : "bg-danger")">
+                                        @AuthService.IsAuthenticated
+                                    </span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Username:</span>
+                                    <span>@(AuthService.CurrentUserName ?? "null")</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Email:</span>
+                                    <span>@(AuthService.CurrentUserEmail ?? "null")</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Role:</span>
+                                    <span>@(AuthService.CurrentUserRole ?? "null")</span>
+                                </li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Environment Info</h5>
+                            <ul class="list-group">
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Base Address:</span>
+                                    <span class="text-break">@HttpClient.BaseAddress</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Current URL:</span>
+                                    <span class="text-break">@Navigation.Uri</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>User Agent:</span>
+                                    <span>@userAgent</span>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span>Timestamp:</span>
+                                    <span>@DateTime.Now.ToString("HH:mm:ss")</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Debug Logs -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h5>Debug Logs</h5>
+                            <div class="debug-log p-3 border rounded" style="height: 400px; overflow-y: auto; background-color: #f8f9fa;">
+                                @foreach (var log in debugLogs)
+                                {
+                                    <div class="log-entry mb-2 p-2 border-bottom">
+                                        <span class="badge @GetLogLevelClass(log.Level) me-2">@log.Level</span>
+                                        <span class="text-muted">[@log.Timestamp.ToString("HH:mm:ss.fff")]</span>
+                                        <span class="fw-bold">@log.Step:</span>
+                                        <div class="mt-1">@log.Message</div>
+                                        @if (!string.IsNullOrEmpty(log.Data))
+                                        {
+                                            <div class="mt-1">
+                                                <small class="text-muted">Data:</small>
+                                                <pre class="text-muted small mt-1" style="white-space: pre-wrap;">@log.Data</pre>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string testUsername = "testuser123";
+    private string testEmail = "test@example.com";
+    private string testPassword = "Test123!";
+    private string testConfirmPassword = "Test123!";
+    private bool isTestingInProgress = false;
+    private string userAgent = "";
+
+    private List<DebugLogEntry> debugLogs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            userAgent = await JSRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+        }
+        catch
+        {
+            userAgent = "Unknown";
+        }
+
+        AddLog("INFO", "Page Initialized", "RegisterDebug page loaded successfully");
+    }
+
+    private async Task TestFullRegisterFlow()
+    {
+        if (isTestingInProgress) return;
+        
+        isTestingInProgress = true;
+        ClearLogs();
+        AddLog("INFO", "Full Test Started", "Beginning complete registration flow test");
+
+        try
+        {
+            await TestStep1_ApiCall();
+            await Task.Delay(500);
+            
+            await TestStep2_AuthServiceCall();
+            await Task.Delay(500);
+            
+            await TestStep3_Navigation();
+            await Task.Delay(500);
+            
+            await TestStep4_AuthCheck();
+            
+            AddLog("SUCCESS", "Full Test Completed", "All registration tests completed successfully");
+        }
+        catch (Exception ex)
+        {
+            AddLog("ERROR", "Full Test Failed", $"Exception during testing: {ex.Message}");
+        }
+        finally
+        {
+            isTestingInProgress = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task TestStep1_ApiCall()
+    {
+        AddLog("INFO", "Step 1", "Testing direct API call to /api/auth/register");
+        
+        try
+        {
+            var registerRequest = new RegisterRequest
+            {
+                UserName = testUsername,
+                Email = testEmail,
+                Password = testPassword,
+                ConfirmPassword = testConfirmPassword
+            };
+
+            var json = JsonSerializer.Serialize(registerRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            AddLog("INFO", "Step 1", $"Sending request to: {HttpClient.BaseAddress}api/auth/register");
+            AddLog("INFO", "Step 1", $"Request body: {json}");
+
+            var response = await HttpClient.PostAsync("api/auth/register", content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            AddLog("INFO", "Step 1", $"Response Status: {response.StatusCode}");
+            AddLog("INFO", "Step 1", $"Response Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Key}: {string.Join(", ", h.Value)}"))}");
+            AddLog("INFO", "Step 1", $"Response Content: {responseContent}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    var registerResponse = JsonSerializer.Deserialize<AuthResult>(responseContent, new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                    AddLog("SUCCESS", "Step 1", $"API call successful! Response parsed successfully");
+                    AddLog("INFO", "Step 1", $"IsSuccess: {registerResponse?.IsSuccess}");
+                    AddLog("INFO", "Step 1", $"Success: {registerResponse?.Success}");
+                    AddLog("INFO", "Step 1", $"IsRegistrationSuccessful: {registerResponse?.IsRegistrationSuccessful}");
+                    AddLog("INFO", "Step 1", $"Message: {registerResponse?.Message}");
+                    
+                    if (registerResponse?.Errors?.Any() == true)
+                    {
+                        AddLog("WARNING", "Step 1", $"Errors: {string.Join(", ", registerResponse.Errors)}");
+                    }
+                }
+                catch (Exception parseEx)
+                {
+                    AddLog("ERROR", "Step 1", $"Failed to parse response: {parseEx.Message}");
+                }
+            }
+            else
+            {
+                AddLog("ERROR", "Step 1", $"API call failed with status: {response.StatusCode}");
+                AddLog("ERROR", "Step 1", $"Error content: {responseContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLog("ERROR", "Step 1", $"Exception during API call: {ex.Message}");
+            AddLog("ERROR", "Step 1", $"Stack trace: {ex.StackTrace}");
+        }
+        
+        StateHasChanged();
+    }
+
+    private async Task TestStep2_AuthServiceCall()
+    {
+        AddLog("INFO", "Step 2", "Testing AuthService.RegisterAsync");
+        
+        try
+        {
+            var registerRequest = new RegisterRequest
+            {
+                UserName = testUsername,
+                Email = testEmail,
+                Password = testPassword,
+                ConfirmPassword = testConfirmPassword
+            };
+
+            AddLog("INFO", "Step 2", $"Calling AuthService.RegisterAsync with username: {registerRequest.UserName}");
+            
+            var result = await AuthService.RegisterAsync(registerRequest);
+            
+            AddLog("INFO", "Step 2", $"AuthService returned: IsSuccess = {result.IsSuccess}");
+            AddLog("INFO", "Step 2", $"AuthService returned: Success = {result.Success}");
+            AddLog("INFO", "Step 2", $"AuthService returned: IsRegistrationSuccessful = {result.IsRegistrationSuccessful}");
+            AddLog("INFO", "Step 2", $"Message: {result.Message}");
+            
+            if (result.Errors?.Any() == true)
+            {
+                AddLog("WARNING", "Step 2", $"Errors: {string.Join(", ", result.Errors)}");
+            }
+
+            if (result.IsRegistrationSuccessful)
+            {
+                AddLog("SUCCESS", "Step 2", "AuthService registration successful!");
+            }
+            else
+            {
+                AddLog("ERROR", "Step 2", "AuthService registration failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLog("ERROR", "Step 2", $"Exception during AuthService call: {ex.Message}");
+        }
+        
+        StateHasChanged();
+    }
+
+    private Task TestStep3_Navigation()
+    {
+        AddLog("INFO", "Step 3", "Testing NavigationManager behavior");
+        
+        try
+        {
+            AddLog("INFO", "Step 3", $"Current URL before navigation: {Navigation.Uri}");
+            
+            // Test navigation to login page (typical after successful registration)
+            AddLog("INFO", "Step 3", "Testing navigation to /login");
+            
+            // We won't actually navigate during the test, but we'll simulate the call
+            AddLog("INFO", "Step 3", "Simulating Navigation.NavigateTo('/login')");
+            
+            // Check if NavigationManager is working
+            var baseUri = Navigation.BaseUri;
+            var currentUri = Navigation.Uri;
+            
+            AddLog("SUCCESS", "Step 3", $"NavigationManager is working. BaseUri: {baseUri}");
+            AddLog("SUCCESS", "Step 3", $"Current URI: {currentUri}");
+            
+            // Test URI building
+            var testUri = Navigation.ToAbsoluteUri("/login").ToString();
+            AddLog("INFO", "Step 3", $"ToAbsoluteUri('/login') result: {testUri}");
+
+        }
+        catch (Exception ex)
+        {
+            AddLog("ERROR", "Step 3", $"Exception during navigation test: {ex.Message}");
+        }
+        
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+
+    private async Task TestStep4_AuthCheck()
+    {
+        AddLog("INFO", "Step 4", "Testing authentication state after registration");
+        
+        try
+        {
+            // Check localStorage for any stored data
+            var token = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var userInfo = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+            
+            AddLog("INFO", "Step 4", $"Token in localStorage: {(string.IsNullOrEmpty(token) ? "null" : "present")}");
+            AddLog("INFO", "Step 4", $"User info in localStorage: {(string.IsNullOrEmpty(userInfo) ? "null" : userInfo)}");
+            
+            AddLog("INFO", "Step 4", $"AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+            AddLog("INFO", "Step 4", $"AuthService.CurrentUserName: {AuthService.CurrentUserName ?? "null"}");
+            AddLog("INFO", "Step 4", $"AuthService.CurrentUserEmail: {AuthService.CurrentUserEmail ?? "null"}");
+            
+            // Note: Registration typically doesn't authenticate the user automatically
+            if (!AuthService.IsAuthenticated)
+            {
+                AddLog("SUCCESS", "Step 4", "User is not authenticated (expected after registration)");
+            }
+            else
+            {
+                AddLog("WARNING", "Step 4", "User is authenticated after registration (unexpected behavior)");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddLog("ERROR", "Step 4", $"Exception during auth state check: {ex.Message}");
+        }
+        
+        StateHasChanged();
+    }
+
+    private void ClearLogs()
+    {
+        debugLogs.Clear();
+        StateHasChanged();
+    }
+
+    private void AddLog(string level, string step, string message, string? data = null)
+    {
+        debugLogs.Add(new DebugLogEntry
+        {
+            Timestamp = DateTime.Now,
+            Level = level,
+            Step = step,
+            Message = message,
+            Data = data
+        });
+        StateHasChanged();
+    }
+
+    private string GetLogLevelClass(string level)
+    {
+        return level.ToUpper() switch
+        {
+            "SUCCESS" => "bg-success",
+            "ERROR" => "bg-danger",
+            "WARNING" => "bg-warning",
+            "INFO" => "bg-info",
+            _ => "bg-secondary"
+        };
+    }
+
+    private class DebugLogEntry
+    {
+        public DateTime Timestamp { get; set; }
+        public string Level { get; set; } = "";
+        public string Step { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string? Data { get; set; }
+    }
+}

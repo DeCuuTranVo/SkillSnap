@@ -1,7 +1,7 @@
 {
   "mainAssemblyName": "SkillSnap.Client",
   "resources": {
-    "hash": "sha256-9uYD2SST8ZzBV4l8p0a0g4itQ3svxJ1jsxp/XdK3xaY=",
+    "hash": "sha256-/o1bY4/lbmqSI1dknCgbgsea00uPRD0iVxkCBzYg6n0=",
     "fingerprinting": {
       "Microsoft.AspNetCore.Authorization.tnyc7xpluy.wasm": "Microsoft.AspNetCore.Authorization.wasm",
       "Microsoft.AspNetCore.Components.t32damlu4o.wasm": "Microsoft.AspNetCore.Components.wasm",
@@ -201,8 +201,8 @@
       "icudt_CJK.tjcz0u77k5.dat": "icudt_CJK.dat",
       "icudt_EFIGS.tptq2av103.dat": "icudt_EFIGS.dat",
       "icudt_no_CJK.lfu7j35m59.dat": "icudt_no_CJK.dat",
-      "SkillSnap.Client.ukeulciecy.wasm": "SkillSnap.Client.wasm",
-      "SkillSnap.Client.u3xesaozjm.pdb": "SkillSnap.Client.pdb"
+      "SkillSnap.Client.hdn083o6fn.wasm": "SkillSnap.Client.wasm",
+      "SkillSnap.Client.bfppk6de32.pdb": "SkillSnap.Client.pdb"
     },
     "jsModuleNative": {
       "dotnet.native.50iqa8w3ys.js": "sha256-pQdXuxfVeqYHOwd5HUM2ERd7OnXirj9JTF37b6OdTAc="
@@ -412,10 +412,10 @@
       "WindowsBase.361km0836k.wasm": "sha256-FacUCEIJYTnbOWgX/R9QP2QnurqRZwRIkDAH0N9z69s=",
       "mscorlib.qiu3j3msqk.wasm": "sha256-QvztpxTOEw4aMIl7zP3QtsPLNv/IWaK5wq22J4ReGrA=",
       "netstandard.lp03u0xxi4.wasm": "sha256-WVQsxULiAiEbyXLKolS7txnWVT82SsvsuMe4jJ+SqqI=",
-      "SkillSnap.Client.ukeulciecy.wasm": "sha256-TirqR8GSe50nf2pz77nupfiiYTg9ncItPu/0OQqAZu0="
+      "SkillSnap.Client.hdn083o6fn.wasm": "sha256-q5VYEk701abnV1wDwJaxX6Otr/1+bdR2Ioc6Dy3/Hmg="
     },
     "pdb": {
-      "SkillSnap.Client.u3xesaozjm.pdb": "sha256-GuPZ5GfK+nUlEXOGiEXKYxlm/b2Rt/PSPuZH7rE95UM="
+      "SkillSnap.Client.bfppk6de32.pdb": "sha256-CfeGND3DDPiIxZMO7QQuoiVqpYwUo2VZOKo632ZYJ7Q="
     }
   },
   "cacheBootResources": true,

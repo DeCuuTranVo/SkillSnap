@@ -1,0 +1,152 @@
+@page "/login"
+@using SkillSnap.Client.Services
+@using SkillSnap.Client.Models.Dtos
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <h2>Sign In</h2>
+            <p class="text-muted">Welcome back to SkillSnap</p>
+        </div>
+
+        <EditForm Model="loginRequest" OnValidSubmit="HandleLogin" class="login-form">
+            <DataAnnotationsValidator />
+            
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    @successMessage
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="username" class="form-label">
+                    <i class="fas fa-user"></i>
+                    Username
+                </label>
+                <InputText @bind-Value="loginRequest.UserName" 
+                          class="form-control" 
+                          id="username" 
+                          placeholder="Enter your username"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => loginRequest.UserName)" class="text-danger" />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <InputText @bind-Value="loginRequest.Password" 
+                          type="password" 
+                          class="form-control" 
+                          id="password" 
+                          placeholder="Enter your password"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => loginRequest.Password)" class="text-danger" />
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-login" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Signing in...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-sign-in-alt"></i>
+                        <span>Sign In</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+
+        <div class="login-footer">
+            <p>Don't have an account? <a href="/register" class="link-primary">Sign up here</a></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest loginRequest = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+
+    protected override void OnInitialized()
+    {
+        // Check if user is already authenticated
+        if (AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo(ReturnUrl ?? "/");
+        }
+    }
+
+    private async Task HandleLogin()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+            StateHasChanged();
+
+            var result = await AuthService.LoginAsync(loginRequest);
+
+            if (result.IsSuccess)
+            {
+                successMessage = "Login successful! Redirecting...";
+                StateHasChanged();
+                
+                Console.WriteLine($"Login successful - AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+                Console.WriteLine($"About to navigate to: {ReturnUrl ?? "/"}");
+                
+                // Small delay to show success message and ensure auth state is updated
+                await Task.Delay(1500);
+                
+                Console.WriteLine($"After delay - AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+                
+                // Navigate to return URL or home
+                Navigation.NavigateTo(ReturnUrl ?? "/");
+                
+                Console.WriteLine("Navigation.NavigateTo called");
+            }
+            else
+            {
+                errorMessage = result.Message;
+                if (result.Errors?.Any() == true)
+                {
+                    errorMessage += " " + string.Join(", ", result.Errors);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

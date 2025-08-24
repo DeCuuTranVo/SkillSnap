@@ -1,6 +1,8 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@inject AuthService AuthService
+
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">SkillSnap.Client</a>
+        <a class="navbar-brand" href="">SkillSnap</a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -14,16 +16,71 @@
                 <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
             </NavLink>
         </div>
+        
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+            <NavLink class="nav-link" href="jsruntimetest">
+                <span class="bi bi-gear-fill" aria-hidden="true"></span> JS Runtime Test
             </NavLink>
         </div>
+        
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+            <NavLink class="nav-link" href="logindebug">
+                <span class="bi bi-bug-fill" aria-hidden="true"></span> Login Debug
             </NavLink>
         </div>
+        
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="registerdebug">
+                <span class="bi bi-person-check-fill" aria-hidden="true"></span> Register Debug
+            </NavLink>
+        </div>
+        
+        @if (AuthService.IsAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="counter">
+                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="weather">
+                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="protected">
+                    <span class="bi bi-shield-lock-fill" aria-hidden="true"></span> Protected
+                </NavLink>
+            </div>
+            
+            <div class="nav-divider"></div>
+            
+            <div class="nav-item px-3 user-info">
+                <div class="user-details">
+                    <span class="user-name">@AuthService.CurrentUserName</span>
+                    <span class="user-role">(@AuthService.CurrentUserRole)</span>
+                </div>
+            </div>
+            
+            <div class="nav-item px-3">
+                <button class="nav-link btn btn-link logout-btn" @onclick="HandleLogout">
+                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                </button>
+            </div>
+        }
+        else
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="login">
+                    <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
+                </NavLink>
+            </div>
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="register">
+                    <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Register
+                </NavLink>
+            </div>
+        }
     </nav>
 </div>
 
@@ -32,8 +89,29 @@
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
+    protected override void OnInitialized()
+    {
+        AuthService.AuthStateChanged += OnAuthStateChanged;
+    }
+
+    private void OnAuthStateChanged(bool isAuthenticated)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        collapseNavMenu = true; // Close the menu after logout
+    }
+
+    public void Dispose()
+    {
+        AuthService.AuthStateChanged -= OnAuthStateChanged;
     }
 }

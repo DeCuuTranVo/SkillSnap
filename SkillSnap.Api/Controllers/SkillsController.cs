@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Data;
 using SkillSnap.Api.Models;
+using SkillSnap.Api.StaticDetails;
 
 namespace SkillSnap.Api.Controllers;
 
@@ -129,6 +131,7 @@ public class SkillsController : ControllerBase
     /// <param name="skill">Skill data</param>
     /// <returns>Created skill</returns>
     [HttpPost]
+    [Authorize] // Authenticated users can create skills
     public async Task<ActionResult<Skill>> CreateSkill(Skill skill)
     {
         try
@@ -176,6 +179,7 @@ public class SkillsController : ControllerBase
     /// <param name="skill">Updated skill data</param>
     /// <returns>Updated skill</returns>
     [HttpPut("{id}")]
+    [Authorize] // Authenticated users can update skills
     public async Task<IActionResult> UpdateSkill(int id, Skill skill)
     {
         if (id != skill.Id)
@@ -227,6 +231,7 @@ public class SkillsController : ControllerBase
     /// <param name="id">Skill ID</param>
     /// <returns>No content if successful</returns>
     [HttpDelete("{id}")]
+    [Authorize(Roles = RoleSD.Admin)] // Only Admin can delete skills
     public async Task<IActionResult> DeleteSkill(int id)
     {
         try

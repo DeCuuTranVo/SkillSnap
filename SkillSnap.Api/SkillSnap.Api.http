@@ -1,6 +1,502 @@
-@SkillSnap.Api_HostAddress = http://localhost:5217
+@baseUrl = http://localhost:5217
+@contentType = application/json
 
-GET {{SkillSnap.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+###
+# Test API Health
+GET {{baseUrl}}/api/portfoliousers
+Accept: {{contentType}}
+
+###
+### AUTHENTICATION TESTING ###
+
+# 1. Register a new user
+# @name registerUser
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "testuser124",
+  "email": "testuser124@example.com",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+###
+
+# 2. Register another user (for testing)
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "johndoe",
+  "email": "john.doe@example.com",
+  "password": "MyPassword456!",
+  "confirmPassword": "MyPassword456!"
+}
+
+###
+
+# 3. Test registration with invalid data (password mismatch)
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "failuser",
+  "email": "fail@example.com",
+  "password": "Password123!",
+  "confirmPassword": "DifferentPassword!"
+}
+
+###
+
+# 4. Test registration with weak password
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "weakuser",
+  "email": "weak@example.com",
+  "password": "123",
+  "confirmPassword": "123"
+}
+
+###
+
+# 5. Test registration with existing username
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "testuser123",
+  "email": "different@example.com",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+###
+
+# 6. Test registration with existing email
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "differentuser",
+  "email": "testuser123@example.com",
+  "password": "SecurePassword123!",
+  "confirmPassword": "SecurePassword123!"
+}
+
+###
+
+# 7. Login with valid credentials
+# @name loginUser
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "userName": "testuser123",
+  "password": "SecurePassword123!"
+}
+
+###
+
+# 8. Login with invalid username
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "userName": "nonexistentuser",
+  "password": "SecurePassword123!"
+}
+
+###
+
+# 9. Login with invalid password
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "userName": "testuser123",
+  "password": "WrongPassword!"
+}
+
+###
+
+# 10. Extract token from login response for authenticated requests
+# Note: Copy the token from the login response above and paste it below
+@authToken = Bearer YOUR_JWT_TOKEN_HERE
+
+###
+### PROTECTED ENDPOINT TESTING ###
+
+# 11. Test protected endpoint without token (should fail with 401)
+GET {{baseUrl}}/api/portfoliousers/1
+Accept: {{contentType}}
+
+###
+
+# 12. Test protected endpoint with valid token
+# First, copy the token from the login response and replace YOUR_JWT_TOKEN_HERE above
+GET {{baseUrl}}/api/portfoliousers/1
+Accept: {{contentType}}
+Authorization: {{authToken}}
+
+###
+
+# 13. Test creating portfolio user (authenticated)
+POST {{baseUrl}}/api/portfoliousers
+Content-Type: {{contentType}}
+Authorization: {{authToken}}
+
+{
+  "name": "Test Portfolio User",
+  "bio": "This is a test portfolio user created via authenticated API call",
+  "profileImageUrl": "https://picsum.photos/200/200?random=100"
+}
+
+###
+
+# 14. Test projects endpoint (authenticated)
+GET {{baseUrl}}/api/projects
+Accept: {{contentType}}
+Authorization: {{authToken}}
+
+###
+
+# 15. Test skills endpoint (authenticated)
+GET {{baseUrl}}/api/skills
+Accept: {{contentType}}
+Authorization: {{authToken}}
+
+###
+
+### TOKEN VALIDATION TESTING ###
+
+# 16. Test with invalid token format
+GET {{baseUrl}}/api/portfoliousers/1
+Accept: {{contentType}}
+Authorization: Bearer invalid_token_format
+
+###
+
+# 17. Test with expired token (will work until token actually expires)
+# Use this after waiting 60+ minutes from login
+GET {{baseUrl}}/api/portfoliousers/1
+Accept: {{contentType}}
+Authorization: Bearer expired_token_here
+
+###
+
+### SWAGGER DOCUMENTATION ACCESS ###
+
+# 18. Access Swagger UI (open in browser)
+# GET {{baseUrl}}/swagger
+
+###
+
+### SAMPLE WORKFLOW: COMPLETE USER JOURNEY ###
+
+# STEP 1: Register
+# @name completeWorkflowRegister
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "workflowuser",
+  "email": "workflow@example.com",
+  "password": "WorkflowPass123!",
+  "confirmPassword": "WorkflowPass123!"
+}
+
+###
+
+# STEP 2: Login (copy token from response)
+# @name completeWorkflowLogin
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "userName": "workflowuser",
+  "password": "WorkflowPass123!"
+}
+
+###
+
+# STEP 3: Use the token for authenticated operations
+# Replace TOKEN_FROM_STEP_2 with actual token from login response
+@workflowToken = Bearer TOKEN_FROM_STEP_2
+
+# Create portfolio
+POST {{baseUrl}}/api/portfoliousers
+Content-Type: {{contentType}}
+Authorization: {{workflowToken}}
+
+{
+  "name": "Workflow Test User",
+  "bio": "Portfolio created through complete authentication workflow",
+  "profileImageUrl": "https://picsum.photos/200/200?random=200"
+}
+
+###
+
+# Get all portfolios
+GET {{baseUrl}}/api/portfoliousers
+Accept: {{contentType}}
+Authorization: {{workflowToken}}
+
+###
+
+### JWT TOKEN INSPECTION ###
+
+# 19. Register user and inspect JWT token claims
+# @name registerForTokenInspection
+POST {{baseUrl}}/api/auth/register
+Content-Type: {{contentType}}
+
+{
+  "userName": "tokentest",
+  "email": "tokentest@example.com",
+  "password": "TokenTest123!",
+  "confirmPassword": "TokenTest123!"
+}
+
+###
+
+# 20. Copy the token from above response and decode it at https://jwt.io
+# The token should now contain:
+# - "role": "User" claim
+# - "name": username
+# - "email": email address
+# - "PortfolioUserId": 0 (initially)
+# - Standard JWT claims (exp, iat, jti, etc.)
+
+###
+
+### AUTHORIZATION TESTING ###
+
+# 21. Test creating project without authentication (should fail with 401)
+POST {{baseUrl}}/api/projects
+Content-Type: {{contentType}}
+
+{
+  "title": "Unauthorized Project",
+  "description": "This should fail",
+  "portfolioUserId": 1
+}
+
+###
+
+# 22. Test creating project with authentication (should succeed)
+POST {{baseUrl}}/api/projects
+Content-Type: {{contentType}}
+Authorization: {{authToken}}
+
+{
+  "title": "Authorized Project",
+  "description": "This project is created by authenticated user",
+  "portfolioUserId": 1,
+  "technologies": "C#, ASP.NET Core",
+  "projectUrl": "https://github.com/example/project",
+  "imageUrl": "https://picsum.photos/400/200?random=301"
+}
+
+###
+
+# 23. Test updating project without authentication (should fail with 401)
+PUT {{baseUrl}}/api/projects/1
+Content-Type: {{contentType}}
+
+{
+  "id": 1,
+  "title": "Updated Project (Unauthorized)",
+  "description": "This should fail",
+  "portfolioUserId": 1
+}
+
+###
+
+# 24. Test updating project with authentication (should succeed)
+PUT {{baseUrl}}/api/projects/1
+Content-Type: {{contentType}}
+Authorization: {{authToken}}
+
+{
+  "id": 1,
+  "title": "Updated Project (Authorized)",
+  "description": "This project update is by authenticated user",
+  "portfolioUserId": 1,
+  "technologies": "C#, ASP.NET Core, Entity Framework",
+  "projectUrl": "https://github.com/example/updated-project",
+  "imageUrl": "https://picsum.photos/400/200?random=302"
+}
+
+###
+
+# 25. Test deleting project as regular user (should fail with 403 Forbidden)
+DELETE {{baseUrl}}/api/projects/1
+Authorization: {{authToken}}
+
+###
+
+# NOTE: To test admin delete functionality, you would need an admin token
+# For now, this will demonstrate the authorization working
+
+# 26. Test creating skill without authentication (should fail with 401)
+POST {{baseUrl}}/api/skills
+Content-Type: {{contentType}}
+
+{
+  "name": "Unauthorized Skill",
+  "level": "Beginner",
+  "portfolioUserId": 1
+}
+
+###
+
+# 27. Test creating skill with authentication (should succeed)
+POST {{baseUrl}}/api/skills
+Content-Type: {{contentType}}
+Authorization: {{authToken}}
+
+{
+  "name": "C# Programming",
+  "level": "Advanced",
+  "portfolioUserId": 1,
+  "category": "Programming Languages",
+  "yearsOfExperience": 5
+}
+
+###
+
+# 28. Test updating skill without authentication (should fail with 401)
+PUT {{baseUrl}}/api/skills/1
+Content-Type: {{contentType}}
+
+{
+  "id": 1,
+  "name": "Updated Skill (Unauthorized)",
+  "level": "Expert",
+  "portfolioUserId": 1
+}
+
+###
+
+# 29. Test updating skill with authentication (should succeed)
+PUT {{baseUrl}}/api/skills/1
+Content-Type: {{contentType}}
+Authorization: {{authToken}}
+
+{
+  "id": 1,
+  "name": "C# Programming (Updated)",
+  "level": "Expert",
+  "portfolioUserId": 1,
+  "category": "Programming Languages",
+  "yearsOfExperience": 6
+}
+
+###
+
+# 30. Test deleting skill as regular user (should fail with 403 Forbidden)
+DELETE {{baseUrl}}/api/skills/1
+Authorization: {{authToken}}
+
+###
+
+# 31. Test creating portfolio user without authentication (should fail with 401)
+POST {{baseUrl}}/api/portfoliousers
+Content-Type: {{contentType}}
+
+{
+  "name": "Unauthorized Portfolio",
+  "bio": "This should fail"
+}
+
+###
+
+# 32. Test updating portfolio user without authentication (should fail with 401)
+PUT {{baseUrl}}/api/portfoliousers/1
+Content-Type: {{contentType}}
+
+{
+  "id": 1,
+  "name": "Updated Portfolio (Unauthorized)",
+  "bio": "This should fail"
+}
+
+###
+
+# 33. Test deleting portfolio user as regular user (should fail with 403 Forbidden)
+DELETE {{baseUrl}}/api/portfoliousers/1
+Authorization: {{authToken}}
+
+###
+
+### ADMIN ROLE TESTING ###
+# Note: These tests require an admin user. To test admin functionality:
+# 1. Create an admin user by modifying Program.cs temporarily or
+# 2. Manually assign admin role in the database or
+# 3. Create a test endpoint to promote users to admin
+
+# Admin login (would need admin credentials)
+# @name adminLogin
+POST {{baseUrl}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "userName": "admin_username_here",
+  "password": "admin_password_here"
+}
+
+###
+
+# Extract admin token (replace with actual admin token)
+@adminToken = Bearer ADMIN_JWT_TOKEN_HERE
+
+###
+
+# Test admin delete project (should succeed with admin token)
+DELETE {{baseUrl}}/api/projects/1
+Authorization: {{adminToken}}
+
+###
+
+# Test admin delete skill (should succeed with admin token)
+DELETE {{baseUrl}}/api/skills/1
+Authorization: {{adminToken}}
+
+###
+
+# Test admin delete portfolio user (should succeed with admin token)
+DELETE {{baseUrl}}/api/portfoliousers/1
+Authorization: {{adminToken}}
+
+###
+
+### ROLE-BASED ACCESS SUMMARY ###
+# 
+# PUBLIC ACCESS (No authentication required):
+# - GET /api/portfoliousers (all users)
+# - GET /api/portfoliousers/{id} (specific user)
+# - GET /api/projects (all projects)
+# - GET /api/projects/{id} (specific project)
+# - GET /api/skills (all skills)
+# - GET /api/skills/{id} (specific skill)
+# - POST /api/auth/register
+# - POST /api/auth/login
+#
+# AUTHENTICATED USER ACCESS (Requires valid JWT):
+# - POST /api/portfoliousers (create portfolio)
+# - PUT /api/portfoliousers/{id} (update portfolio)
+# - POST /api/projects (create project)
+# - PUT /api/projects/{id} (update project)
+# - POST /api/skills (create skill)
+# - PUT /api/skills/{id} (update skill)
+#
+# ADMIN ONLY ACCESS (Requires Admin role):
+# - DELETE /api/portfoliousers/{id}
+# - DELETE /api/projects/{id}
+# - DELETE /api/skills/{id}
+#
 
 ###

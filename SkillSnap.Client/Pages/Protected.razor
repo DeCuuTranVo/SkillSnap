@@ -1,0 +1,89 @@
+@page "/protected"
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="protected-container">
+    @if (AuthService.IsAuthenticated)
+    {
+        <div class="protected-content">
+            <div class="welcome-header">
+                <h2>🔐 Protected Area</h2>
+                <p class="lead">Welcome to the secured section, @AuthService.CurrentUserName!</p>
+            </div>
+
+            <div class="user-info-card">
+                <h4>Your Account Information</h4>
+                <div class="info-row">
+                    <strong>Username:</strong> @AuthService.CurrentUserName
+                </div>
+                <div class="info-row">
+                    <strong>Email:</strong> @AuthService.CurrentUserEmail
+                </div>
+                <div class="info-row">
+                    <strong>Role:</strong> 
+                    <span class="role-badge role-@AuthService.CurrentUserRole?.ToLower()">
+                        @AuthService.CurrentUserRole
+                    </span>
+                </div>
+            </div>
+
+            @if (AuthService.IsAdmin())
+            {
+                <div class="admin-panel">
+                    <h4>🛠️ Admin Panel</h4>
+                    <p>You have administrative privileges. You can:</p>
+                    <ul>
+                        <li>Delete portfolio users</li>
+                        <li>Delete projects</li>
+                        <li>Delete skills</li>
+                        <li>Manage all content</li>
+                    </ul>
+                </div>
+            }
+
+            <div class="actions">
+                <button class="btn btn-secondary" @onclick="GoToHome">
+                    <i class="fas fa-home"></i> Go to Home
+                </button>
+                <button class="btn btn-danger" @onclick="HandleLogout">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="access-denied">
+            <div class="access-denied-content">
+                <h2>🚫 Access Denied</h2>
+                <p>You need to be logged in to access this page.</p>
+                <div class="auth-actions">
+                    <a href="/login" class="btn btn-primary">Login</a>
+                    <a href="/register" class="btn btn-outline-primary">Register</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Redirect to login if not authenticated
+        if (!AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo($"/login?returnUrl={Uri.EscapeDataString("/protected")}");
+        }
+    }
+
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/");
+    }
+}

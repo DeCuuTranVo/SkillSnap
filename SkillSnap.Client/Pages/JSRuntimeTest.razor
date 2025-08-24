@@ -1,0 +1,467 @@
+@page "/jsruntimetest"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.JSInterop
+@implements IDisposable
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>IJSRuntime Test Page</h3>
+            <p class="text-muted">Testing JavaScript interop functionality on macOS</p>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Basic JavaScript Tests</h5>
+                    
+                    <div class="mb-3">
+                        <button class="btn btn-primary" @onclick="TestAlert">
+                            Test JavaScript Alert
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-info" @onclick="TestConsoleLog">
+                            Test Console.log
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-warning" @onclick="TestPrompt">
+                            Test JavaScript Prompt
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-success" @onclick="TestConfirm">
+                            Test JavaScript Confirm
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>localStorage Tests</h5>
+                    
+                    <div class="mb-3">
+                        <input @bind="testKey" placeholder="Key" class="form-control mb-2" />
+                        <input @bind="testValue" placeholder="Value" class="form-control mb-2" />
+                        <button class="btn btn-primary" @onclick="SetLocalStorage">
+                            Set localStorage
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <input @bind="getKey" placeholder="Key to get" class="form-control mb-2" />
+                        <button class="btn btn-info" @onclick="GetLocalStorage">
+                            Get localStorage
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-warning" @onclick="ListAllLocalStorage">
+                            List All localStorage
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-danger" @onclick="ClearLocalStorage">
+                            Clear All localStorage
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h5>NavigationManager Tests</h5>
+                    <p class="text-muted">Testing navigation functionality that's used in login flow</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <button class="btn btn-primary" @onclick="TestNavigateToHome">
+                                    Navigate to Home (/)
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-info" @onclick="TestNavigateToCounter">
+                                    Navigate to Counter
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-warning" @onclick="TestNavigateWithDelay">
+                                    Navigate with 2s Delay (like login)
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-success" @onclick="TestNavigateForceLoad">
+                                    Navigate with ForceLoad=true
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <input @bind="customUrl" placeholder="Custom URL (e.g., /weather)" class="form-control mb-2" />
+                                <button class="btn btn-secondary" @onclick="TestCustomNavigation">
+                                    Navigate to Custom URL
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-dark" @onclick="TestNavigationInfo">
+                                    Show Navigation Info
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-outline-primary" @onclick="TestLocationChanged">
+                                    Test Location Change Event
+                                </button>
+                            </div>
+
+                            <div class="mb-3">
+                                <button class="btn btn-outline-danger" @onclick="TestNavigateBack">
+                                    Navigate Back (History)
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h5>Test Results</h5>
+                    <div class="alert alert-info">
+                        <pre>@testResults</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h5>System Information</h5>
+                    <ul class="list-group">
+                        <li class="list-group-item">Browser: <span id="browser-info">Loading...</span></li>
+                        <li class="list-group-item">Platform: <span id="platform-info">Loading...</span></li>
+                        <li class="list-group-item">localStorage Support: <span id="localstorage-support">Testing...</span></li>
+                        <li class="list-group-item">IJSRuntime Status: @ijsRuntimeStatus</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string testKey = "testKey";
+    private string testValue = "testValue";
+    private string getKey = "testKey";
+    private string customUrl = "/weather";
+    private string testResults = "Ready to test...\n";
+    private string ijsRuntimeStatus = "Not tested";
+    private bool isLocationChangedListening = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadSystemInfo();
+        }
+    }
+
+    private async Task LoadSystemInfo()
+    {
+        try
+        {
+            ijsRuntimeStatus = "Working";
+            
+            // Test basic browser info
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                document.getElementById('browser-info').textContent = navigator.userAgent;
+                document.getElementById('platform-info').textContent = navigator.platform;
+                document.getElementById('localstorage-support').textContent = 
+                    typeof(Storage) !== 'undefined' ? 'Supported' : 'Not supported';
+            ");
+            
+            AddResult("✅ System info loaded successfully");
+        }
+        catch (Exception ex)
+        {
+            ijsRuntimeStatus = $"Error: {ex.Message}";
+            AddResult($"❌ System info failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestAlert()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Hello from Blazor on macOS!");
+            AddResult("✅ JavaScript alert test passed");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Alert test failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestConsoleLog()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("console.log", "Test message from Blazor IJSRuntime");
+            AddResult("✅ Console.log test passed (check browser console)");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Console.log test failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestPrompt()
+    {
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<string>("prompt", "Enter some text:");
+            AddResult($"✅ Prompt test passed. You entered: '{result}'");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Prompt test failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestConfirm()
+    {
+        try
+        {
+            var result = await JSRuntime.InvokeAsync<bool>("confirm", "Click OK or Cancel");
+            AddResult($"✅ Confirm test passed. You clicked: {(result ? "OK" : "Cancel")}");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Confirm test failed: {ex.Message}");
+        }
+    }
+
+    private async Task SetLocalStorage()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", testKey, testValue);
+            AddResult($"✅ localStorage.setItem passed: '{testKey}' = '{testValue}'");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ localStorage.setItem failed: {ex.Message}");
+        }
+    }
+
+    private async Task GetLocalStorage()
+    {
+        try
+        {
+            var value = await JSRuntime.InvokeAsync<string>("localStorage.getItem", getKey);
+            AddResult($"✅ localStorage.getItem passed: '{getKey}' = '{value}'");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ localStorage.getItem failed: {ex.Message}");
+        }
+    }
+
+    private async Task ListAllLocalStorage()
+    {
+        try
+        {
+            var keys = await JSRuntime.InvokeAsync<string[]>("eval", @"
+                Object.keys(localStorage)
+            ");
+            
+            AddResult($"✅ localStorage keys found: {string.Join(", ", keys)}");
+            
+            foreach (var key in keys)
+            {
+                var value = await JSRuntime.InvokeAsync<string>("localStorage.getItem", key);
+                AddResult($"   {key}: {value}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ List localStorage failed: {ex.Message}");
+        }
+    }
+
+    private async Task ClearLocalStorage()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.clear");
+            AddResult("✅ localStorage.clear passed - all data cleared");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ localStorage.clear failed: {ex.Message}");
+        }
+    }
+
+    private void AddResult(string message)
+    {
+        testResults += $"[{DateTime.Now:HH:mm:ss}] {message}\n";
+        StateHasChanged();
+    }
+
+    // NavigationManager Tests
+    private void TestNavigateToHome()
+    {
+        try
+        {
+            AddResult("🔄 Attempting to navigate to home (/)...");
+            Navigation.NavigateTo("/");
+            AddResult("✅ Navigation.NavigateTo('/') called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Navigate to home failed: {ex.Message}");
+        }
+    }
+
+    private void TestNavigateToCounter()
+    {
+        try
+        {
+            AddResult("🔄 Attempting to navigate to counter...");
+            Navigation.NavigateTo("/counter");
+            AddResult("✅ Navigation.NavigateTo('/counter') called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Navigate to counter failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestNavigateWithDelay()
+    {
+        try
+        {
+            AddResult("🔄 Testing navigation with delay (simulating login flow)...");
+            AddResult("⏳ Waiting 2 seconds...");
+            await Task.Delay(2000);
+            AddResult("🔄 Now navigating to home...");
+            Navigation.NavigateTo("/");
+            AddResult("✅ Delayed navigation completed successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Delayed navigation failed: {ex.Message}");
+        }
+    }
+
+    private void TestNavigateForceLoad()
+    {
+        try
+        {
+            AddResult("🔄 Testing navigation with forceLoad=true...");
+            Navigation.NavigateTo("/", forceLoad: true);
+            AddResult("✅ Navigation.NavigateTo('/', forceLoad: true) called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Navigate with forceLoad failed: {ex.Message}");
+        }
+    }
+
+    private void TestCustomNavigation()
+    {
+        try
+        {
+            AddResult($"🔄 Attempting to navigate to custom URL: {customUrl}");
+            Navigation.NavigateTo(customUrl);
+            AddResult($"✅ Navigation.NavigateTo('{customUrl}') called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Custom navigation failed: {ex.Message}");
+        }
+    }
+
+    private void TestNavigationInfo()
+    {
+        try
+        {
+            AddResult("📍 Current Navigation Information:");
+            AddResult($"   BaseUri: {Navigation.BaseUri}");
+            AddResult($"   Uri: {Navigation.Uri}");
+            
+            var uri = new Uri(Navigation.Uri);
+            AddResult($"   Host: {uri.Host}");
+            AddResult($"   Port: {uri.Port}");
+            AddResult($"   Path: {uri.AbsolutePath}");
+            AddResult($"   Query: {uri.Query}");
+            AddResult("✅ Navigation info retrieved successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Get navigation info failed: {ex.Message}");
+        }
+    }
+
+    private void TestLocationChanged()
+    {
+        try
+        {
+            if (!isLocationChangedListening)
+            {
+                Navigation.LocationChanged += OnLocationChanged;
+                isLocationChangedListening = true;
+                AddResult("✅ Location change listener activated");
+                AddResult("📍 Navigate to any page to test location change event");
+            }
+            else
+            {
+                Navigation.LocationChanged -= OnLocationChanged;
+                isLocationChangedListening = false;
+                AddResult("🔇 Location change listener deactivated");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Location change test failed: {ex.Message}");
+        }
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        AddResult($"🚨 LOCATION CHANGED EVENT: {e.Location}");
+        AddResult($"   IsNavigationIntercepted: {e.IsNavigationIntercepted}");
+    }
+
+    private async Task TestNavigateBack()
+    {
+        try
+        {
+            AddResult("🔄 Testing browser back navigation...");
+            await JSRuntime.InvokeVoidAsync("history.back");
+            AddResult("✅ history.back() called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddResult($"❌ Navigate back failed: {ex.Message}");
+        }
+    }
+
+    public void Dispose()
+    {
+        if (isLocationChangedListening)
+        {
+            Navigation.LocationChanged -= OnLocationChanged;
+        }
+    }
+}

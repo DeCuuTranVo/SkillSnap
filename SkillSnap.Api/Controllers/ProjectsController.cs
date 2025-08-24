@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Data;
 using SkillSnap.Api.Models;
+using SkillSnap.Api.StaticDetails;
 
 namespace SkillSnap.Api.Controllers;
 
@@ -105,6 +107,7 @@ public class ProjectsController : ControllerBase
     /// <param name="project">Project data</param>
     /// <returns>Created project</returns>
     [HttpPost]
+    [Authorize] // Authenticated users can create projects
     public async Task<ActionResult<Project>> CreateProject(Project project)
     {
         try
@@ -146,6 +149,7 @@ public class ProjectsController : ControllerBase
     /// <param name="project">Updated project data</param>
     /// <returns>Updated project</returns>
     [HttpPut("{id}")]
+    [Authorize] // Authenticated users can update projects
     public async Task<IActionResult> UpdateProject(int id, Project project)
     {
         if (id != project.Id)
@@ -193,6 +197,7 @@ public class ProjectsController : ControllerBase
     /// <param name="id">Project ID</param>
     /// <returns>No content if successful</returns>
     [HttpDelete("{id}")]
+    [Authorize(Roles = RoleSD.Admin)] // Only Admin can delete projects
     public async Task<IActionResult> DeleteProject(int id)
     {
         try

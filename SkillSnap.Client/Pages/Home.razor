@@ -1,6 +1,9 @@
 ﻿@page "/"
 @using SkillSnap.Client.Models
 @using SkillSnap.Client.Pages
+@using SkillSnap.Client.Services
+
+@inject PortfolioUserService PortfolioUserService
 
 <PageTitle>SkillSnap - Portfolio Showcase</PageTitle>
 
@@ -14,26 +17,29 @@
 
 <h2>Featured Portfolio</h2>
 
-<ProfileCard User="@samplePortfolio" />
+@if (mainPortfolio == null)
+{
+    <div class="loading">
+        <p>Loading portfolio...</p>
+    </div>
+}
+else
+{
+    <ProfileCard User="@mainPortfolio" />
 
-<div style="margin-top: 2rem;">
-    <SkillTags PortfolioId="@samplePortfolio.Id" Title="Technical Skills" ShowLevel="true" Clickable="true" />
-</div>
+    <div style="margin-top: 2rem;">
+        <SkillTags PortfolioId="@mainPortfolio.Id" Title="Technical Skills" ShowLevel="true" Clickable="true" />
+    </div>
 
-<div style="margin-top: 3rem;">
-    <ProjectList PortfolioId="@samplePortfolio.Id" />
-</div>
+    <div style="margin-top: 3rem;">
+        <ProjectList PortfolioId="@mainPortfolio.Id" />
+    </div>
+}
 
 @code {
-    public PortfolioUser samplePortfolio = new PortfolioUser
-    {
-        Id = 2,
-        Name = "Jane Doe",
-        Bio = "Full Stack Developer with a passion for creating dynamic web applications.",
-        ProfileImageUrl = "https://example.com/images/jane.png"
-    };
+    public PortfolioUser? mainPortfolio;
     protected override async Task OnInitializedAsync()
     {
-        await Task.CompletedTask;
+        mainPortfolio = await PortfolioUserService.GetFirstPortfolioUserAsync();
     }
 }

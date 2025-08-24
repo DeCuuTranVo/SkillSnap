@@ -1,0 +1,185 @@
+@page "/register"
+@using SkillSnap.Client.Services
+@using SkillSnap.Client.Models.Dtos
+
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<div class="register-container">
+    <div class="register-card">
+        <div class="register-header">
+            <h2>Create Account</h2>
+            <p class="text-muted">Join SkillSnap to showcase your portfolio</p>
+        </div>
+
+        <EditForm Model="registerRequest" OnValidSubmit="HandleRegister" class="register-form">
+            <DataAnnotationsValidator />
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @errorMessage
+                </div>
+            }
+
+            @if (errors?.Any() == true)
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <ul class="mb-0">
+                        @foreach (var error in errors)
+                        {
+                            <li>@error</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    @successMessage
+                </div>
+            }
+
+            <div class="form-group">
+                <label for="username" class="form-label">
+                    <i class="fas fa-user"></i>
+                    Username
+                </label>
+                <InputText @bind-Value="registerRequest.UserName" 
+                          class="form-control" 
+                          id="username" 
+                          placeholder="Choose a username"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => registerRequest.UserName)" class="text-danger" />
+            </div>
+
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    <i class="fas fa-envelope"></i>
+                    Email Address
+                </label>
+                <InputText @bind-Value="registerRequest.Email" 
+                          type="email" 
+                          class="form-control" 
+                          id="email" 
+                          placeholder="Enter your email address"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => registerRequest.Email)" class="text-danger" />
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Password
+                </label>
+                <InputText @bind-Value="registerRequest.Password" 
+                          type="password" 
+                          class="form-control" 
+                          id="password" 
+                          placeholder="Create a strong password"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => registerRequest.Password)" class="text-danger" />
+                <small class="form-text text-muted">
+                    Password must be at least 6 characters long and contain uppercase, lowercase, number, and special character.
+                </small>
+            </div>
+
+            <div class="form-group">
+                <label for="confirmPassword" class="form-label">
+                    <i class="fas fa-lock"></i>
+                    Confirm Password
+                </label>
+                <InputText @bind-Value="registerRequest.ConfirmPassword" 
+                          type="password" 
+                          class="form-control" 
+                          id="confirmPassword" 
+                          placeholder="Confirm your password"
+                          disabled="@isLoading" />
+                <ValidationMessage For="@(() => registerRequest.ConfirmPassword)" class="text-danger" />
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-register" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Creating Account...</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-user-plus"></i>
+                        <span>Create Account</span>
+                    }
+                </button>
+            </div>
+        </EditForm>
+
+        <div class="register-footer">
+            <p>Already have an account? <a href="/login" class="link-primary">Sign in here</a></p>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerRequest = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+    private List<string>? errors;
+
+    protected override void OnInitialized()
+    {
+        // Check if user is already authenticated
+        if (AuthService.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private async Task HandleRegister()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+            errors = null;
+            StateHasChanged();
+
+            var result = await AuthService.RegisterAsync(registerRequest);
+
+            if (result.IsRegistrationSuccessful)
+            {
+                successMessage = "Account created successfully! Redirecting to login...";
+                StateHasChanged();
+                
+                // Small delay to show success message
+                await Task.Delay(2000);
+                
+                // Navigate to login page
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                errorMessage = result.Message;
+                errors = result.Errors?.Any() == true ? result.Errors : null;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An unexpected error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

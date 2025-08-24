@@ -194,3 +194,4 @@
 /Users/tranvq/code_repos/SkillSnap/SkillSnap.Api/bin/Debug/net9.0/Swashbuckle.AspNetCore.Swagger.dll
 /Users/tranvq/code_repos/SkillSnap/SkillSnap.Api/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerGen.dll
 /Users/tranvq/code_repos/SkillSnap/SkillSnap.Api/bin/Debug/net9.0/Swashbuckle.AspNetCore.SwaggerUI.dll
+/Users/tranvq/code_repos/SkillSnap/SkillSnap.Api/bin/Debug/net9.0/Microsoft.AspNetCore.Authentication.JwtBearer.dll
