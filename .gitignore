@@ -1,2 +1,9 @@
 # Development notes and local configuration
 development_details.txt
+
+# Ignore build output directories
+SkillSnap.Api/bin/
+SkillSnap.Api/obj/
+SkillSnap.Client/bin/
+SkillSnap.Client/obj/
+

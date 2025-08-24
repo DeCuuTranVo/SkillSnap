@@ -1,4 +1,6 @@
 @using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@inject ProjectService ProjectService
 
 <div class="project-list">
     <h2 class="project-list-title">Projects</h2>
@@ -58,14 +60,20 @@
 </div>
 
 @code {
-    [Parameter] public List<Project>? Projects { get; set; }
-    [Parameter] public EventCallback<int> OnProjectSelected { get; set; }
+    [Parameter] public int PortfolioId { get; set; }
+    public List<Project>? Projects { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Projects = await ProjectService.GetProjectsByUserAsync(PortfolioId);
+    }
 
     private async Task ViewProject(int projectId)
     {
-        if (OnProjectSelected.HasDelegate)
-        {
-            await OnProjectSelected.InvokeAsync(projectId);
-        }
+        //if (OnProjectSelected.HasDelegate)
+        //{
+        //    await OnProjectSelected.InvokeAsync(projectId);
+        //}
+        await Task.CompletedTask;
     }
 }

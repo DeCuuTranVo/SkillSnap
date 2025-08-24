@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Data;
+using System.Text.Json.Serialization;
 
 namespace SkillSnap.Api.Extensions;
 
@@ -7,8 +8,22 @@ public static class ServiceExtensions
 {
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
-        // Controllers
-        services.AddControllers();
+        // Controllers with JSON configuration
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                // Handle reference cycles
+                options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+                
+                // Optional: Preserve references instead of ignoring cycles
+                // options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.Preserve;
+                
+                // Configure property naming policy (optional)
+                options.JsonSerializerOptions.PropertyNamingPolicy = null; // Keep PascalCase
+                
+                // Handle null values
+                options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+            });
 
         // Database
         services.AddDatabase(configuration);
@@ -59,10 +74,14 @@ public static class ServiceExtensions
             options.AddPolicy("AllowClient", policy =>
             {
                 policy.WithOrigins(
-                        "https://localhost:5173", 
-                        "http://localhost:5173",
-                        "https://localhost:5001",
-                        "http://localhost:5000"
+                        // "https://localhost:5173", 
+                        // "http://localhost:5173",
+                        // "https://localhost:7128", 
+                        "http://localhost:5179"
+                        // "https://localhost:5001",
+                        // "http://localhost:5000",
+                        // "http://localhost:5217"
+                        // "https://localhost:5217"
                     )
                     .AllowAnyHeader()
                     .AllowAnyMethod()

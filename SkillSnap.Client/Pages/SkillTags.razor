@@ -1,4 +1,6 @@
 @using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@inject SkillService SkillService
 
 <div class="skill-tags">
     @if (!string.IsNullOrEmpty(Title))
@@ -47,11 +49,18 @@
 </div>
 
 @code {
-    [Parameter] public List<Skill>? Skills { get; set; }
+    [Parameter] public int PortfolioId { get; set; }
     [Parameter] public string Title { get; set; } = "Skills";
     [Parameter] public bool ShowLevel { get; set; } = true;
     [Parameter] public bool Clickable { get; set; } = false;
-    [Parameter] public EventCallback<Skill> OnSkillSelected { get; set; }
+    public List<Skill>? Skills { get; set; }
+
+    protected async override Task OnInitializedAsync()
+    {
+        // Simulate fetching skills for a specific portfolio/user
+        Skills = await SkillService.GetSkillsByUserAsync(PortfolioId);
+        return;
+    }
 
     private string GetLevelClass(string level)
     {
@@ -79,9 +88,11 @@
 
     private async Task HandleSkillClick(Skill skill)
     {
-        if (Clickable && OnSkillSelected.HasDelegate)
-        {
-            await OnSkillSelected.InvokeAsync(skill);
-        }
+        //if (Clickable && OnSkillSelected.HasDelegate)
+        //{
+        //    await OnSkillSelected.InvokeAsync(skill);
+        //}
+
+        await Task.CompletedTask;
     }
 }
