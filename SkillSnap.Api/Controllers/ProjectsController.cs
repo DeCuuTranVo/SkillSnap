@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SkillSnap.Api.Data;
 using SkillSnap.Api.Models;
 using SkillSnap.Api.StaticDetails;
@@ -13,11 +14,13 @@ public class ProjectsController : ControllerBase
 {
     private readonly SkillSnapContext _context;
     private readonly ILogger<ProjectsController> _logger;
+    private readonly IMemoryCache _cache;
 
-    public ProjectsController(SkillSnapContext context, ILogger<ProjectsController> logger)
+    public ProjectsController(SkillSnapContext context, ILogger<ProjectsController> logger, IMemoryCache cache)
     {
         _context = context;
         _logger = logger;
+        _cache = cache;
     }
 
     /// <summary>
@@ -29,16 +32,43 @@ public class ProjectsController : ControllerBase
     {
         try
         {
-            var projects = await _context.Projects
-                .Include(p => p.PortfolioUser)
-                .ToListAsync();
+            // Try to get cached projects
+            if (!_cache.TryGetValue("projects", out List<Project> projects))
+            {
+                // Not in cache, fetch from DB with navigation property
+                projects = await _context.Projects
+                    .Include(p => p.PortfolioUser)
+                    .AsNoTracking()
+                    .OrderBy(p => p.Id)
+                    .ToListAsync();
+
+                // Set cache with expiration
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+
+                _cache.Set("projects", projects, cacheEntryOptions);
+            }
 
             return Ok(projects);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while retrieving projects");
-            return StatusCode(500, "An error occurred while retrieving projects");
+
+            // Fallback: try to get from DB if cache failed
+            try
+            {
+                var projects = await _context.Projects
+                    .Include(p => p.PortfolioUser)
+                    .AsNoTracking()
+                    .OrderBy(p => p.Id)
+                    .ToListAsync();
+                return Ok(projects);
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while retrieving projects");
+            }
         }
     }
 
@@ -54,6 +84,7 @@ public class ProjectsController : ControllerBase
         {
             var project = await _context.Projects
                 .Include(p => p.PortfolioUser)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id);
 
             if (project == null)
@@ -81,7 +112,10 @@ public class ProjectsController : ControllerBase
         try
         {
             // First check if the user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == portfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == portfolioUserId);
+                
             if (!userExists)
             {
                 return NotFound($"Portfolio user with ID {portfolioUserId} not found");
@@ -89,7 +123,9 @@ public class ProjectsController : ControllerBase
 
             var projects = await _context.Projects
                 .Include(p => p.PortfolioUser)
+                .AsNoTracking()
                 .Where(p => p.PortfolioUserId == portfolioUserId)
+                .OrderBy(p => p.Id)
                 .ToListAsync();
 
             return Ok(projects);
@@ -113,7 +149,10 @@ public class ProjectsController : ControllerBase
         try
         {
             // Validate that the portfolio user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == project.PortfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == project.PortfolioUserId);
+                
             if (!userExists)
             {
                 return BadRequest($"Portfolio user with ID {project.PortfolioUserId} does not exist");
@@ -128,6 +167,7 @@ public class ProjectsController : ControllerBase
             // Reload the project with navigation properties
             var createdProject = await _context.Projects
                 .Include(p => p.PortfolioUser)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == project.Id);
 
             return CreatedAtAction(
@@ -160,14 +200,19 @@ public class ProjectsController : ControllerBase
         try
         {
             // Check if project exists
-            var existingProject = await _context.Projects.FindAsync(id);
+            var existingProject = await _context.Projects
+                .FirstOrDefaultAsync(p => p.Id == id);
+                
             if (existingProject == null)
             {
                 return NotFound($"Project with ID {id} not found");
             }
 
             // Validate that the portfolio user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == project.PortfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == project.PortfolioUserId);
+                
             if (!userExists)
             {
                 return BadRequest($"Portfolio user with ID {project.PortfolioUserId} does not exist");
@@ -202,7 +247,9 @@ public class ProjectsController : ControllerBase
     {
         try
         {
-            var project = await _context.Projects.FindAsync(id);
+            var project = await _context.Projects
+                .FirstOrDefaultAsync(p => p.Id == id);
+                
             if (project == null)
             {
                 return NotFound($"Project with ID {id} not found");

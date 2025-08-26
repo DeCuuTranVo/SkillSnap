@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add all application services
 builder.Services.AddApplicationServices(builder.Configuration);
 
+
 var app = builder.Build();
 
 // Seed data for testing

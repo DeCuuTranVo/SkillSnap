@@ -1,0 +1,402 @@
+@page "/logindebug"
+@using System.Text.Json
+
+@inject CustomAuthenticationStateProvider AuthProvider
+@inject AuthService AuthSvc
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject HttpClient HttpClient
+
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header">
+            <h3>Login Debug Page</h3>
+            <p class="text-muted">Step-by-step debugging of the login process</p>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Quick Login Test</h5>
+                    
+                    <div class="mb-3">
+                        <input @bind="testUsername" placeholder="Username" class="form-control mb-2" />
+                        <input @bind="testPassword" type="password" placeholder="Password" class="form-control mb-2" />
+                        <button class="btn btn-primary" @onclick="TestFullLoginFlow" disabled="@isLogging">
+                            @if (isLogging)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <text>Testing Login...</text>
+                            }
+                            else
+                            {
+                                <text>Test Full Login Flow</text>
+                            }
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-info" @onclick="CheckAuthState">
+                            Check Current Auth State
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-warning" @onclick="TestApiConnection">
+                            Test API Connection
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-success" @onclick="TestManualNavigation">
+                            Test Manual Navigation
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-secondary" @onclick="CheckLocalStorage">
+                            Check localStorage Content
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h5>Step-by-Step Tests</h5>
+                    
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary" @onclick="TestStep1_ApiCall">
+                            Step 1: Test API Call Only
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary" @onclick="TestStep2_AuthService">
+                            Step 2: Test AuthService Response
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary" @onclick="TestStep3_StateUpdate">
+                            Step 3: Test State Update
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-outline-primary" @onclick="TestStep4_Navigation">
+                            Step 4: Test Navigation Only
+                        </button>
+                    </div>
+
+                    <div class="mb-3">
+                        <button class="btn btn-danger" @onclick="ClearDebugResults">
+                            Clear Results
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-4">
+                <div class="col-12">
+                    <h5>Debug Results</h5>
+                    <div class="alert alert-info" style="max-height: 400px; overflow-y: auto;">
+                        <pre>@debugResults</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <h5>Current State</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <tbody>
+                                <tr>
+                                    <td><strong>IsAuthenticated:</strong></td>
+                                    <td>@AuthService.IsAuthenticated</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CurrentUserName:</strong></td>
+                                    <td>@(AuthService.CurrentUserName ?? "null")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CurrentUserEmail:</strong></td>
+                                    <td>@(AuthService.CurrentUserEmail ?? "null")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>CurrentUserRole:</strong></td>
+                                    <td>@(AuthService.CurrentUserRole ?? "null")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Current URL:</strong></td>
+                                    <td>@Navigation.Uri</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Base URL:</strong></td>
+                                    <td>@Navigation.BaseUri</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string testUsername = "testuser";
+    private string testPassword = "TestPassword123!";
+    private string debugResults = "Ready to debug...\n";
+    private bool isLogging = false;
+
+    private async Task TestFullLoginFlow()
+    {
+        if (isLogging) return;
+        
+        try
+        {
+            isLogging = true;
+            AddDebugResult("🚀 === STARTING FULL LOGIN FLOW TEST ===");
+            AddDebugResult($"📝 Username: {testUsername}");
+            AddDebugResult($"📝 Password: {new string('*', testPassword.Length)}");
+            
+            // Step 1: Check initial state
+            AddDebugResult($"📊 Initial AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+            
+            // Step 2: Create login request
+            var loginRequest = new LoginRequest
+            {
+                UserName = testUsername,
+                Password = testPassword
+            };
+            AddDebugResult("📋 Login request created");
+            
+            // Step 3: Call AuthService
+            AddDebugResult("🔄 Calling AuthService.LoginAsync...");
+            var result = await AuthService.LoginAsync(loginRequest);
+            
+            AddDebugResult($"📨 AuthService Response:");
+            AddDebugResult($"   IsSuccess: {result.IsSuccess}");
+            AddDebugResult($"   Message: {result.Message}");
+            if (result.Errors?.Any() == true)
+            {
+                AddDebugResult($"   Errors: {string.Join(", ", result.Errors)}");
+            }
+            
+            // Step 4: Check post-login state
+            AddDebugResult($"📊 Post-login AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+            AddDebugResult($"📊 CurrentUserName: {AuthService.CurrentUserName ?? "null"}");
+            AddDebugResult($"📊 CurrentUserRole: {AuthService.CurrentUserRole ?? "null"}");
+            
+            if (result.IsSuccess)
+            {
+                AddDebugResult("✅ Login successful, testing navigation...");
+                
+                // Step 5: Test delay (like in real login)
+                AddDebugResult("⏳ Waiting 1.5 seconds (like real login)...");
+                await Task.Delay(1500);
+                
+                // Step 6: Check state after delay
+                AddDebugResult($"📊 After delay - AuthService.IsAuthenticated: {AuthService.IsAuthenticated}");
+                
+                // Step 7: Attempt navigation
+                AddDebugResult("🧭 Attempting navigation to home...");
+                try
+                {
+                    Navigation.NavigateTo("/");
+                    AddDebugResult("✅ Navigation.NavigateTo('/') called successfully");
+                }
+                catch (Exception navEx)
+                {
+                    AddDebugResult($"❌ Navigation failed: {navEx.Message}");
+                }
+            }
+            else
+            {
+                AddDebugResult("❌ Login failed - no navigation attempted");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"💥 Exception in full login flow: {ex.Message}");
+            AddDebugResult($"💥 Stack trace: {ex.StackTrace}");
+        }
+        finally
+        {
+            isLogging = false;
+            AddDebugResult("🏁 === FULL LOGIN FLOW TEST COMPLETED ===");
+            StateHasChanged();
+        }
+    }
+
+    private void CheckAuthState()
+    {
+        AddDebugResult("=== CURRENT AUTH STATE ===");
+        AddDebugResult($"IsAuthenticated: {AuthService.IsAuthenticated}");
+        AddDebugResult($"CurrentUserName: {AuthService.CurrentUserName ?? "null"}");
+        AddDebugResult($"CurrentUserEmail: {AuthService.CurrentUserEmail ?? "null"}");
+        AddDebugResult($"CurrentUserRole: {AuthService.CurrentUserRole ?? "null"}");
+    }
+
+    private async Task TestApiConnection()
+    {
+        try
+        {
+            AddDebugResult("🔗 Testing API connection...");
+            AddDebugResult($"🔗 API Base Address: {HttpClient.BaseAddress}");
+            
+            var response = await HttpClient.GetAsync("api/portfoliousers");
+            AddDebugResult($"📡 GET /api/portfoliousers - Status: {response.StatusCode}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStringAsync();
+                AddDebugResult($"📄 Response length: {content.Length} characters");
+                AddDebugResult("✅ API connection working");
+            }
+            else
+            {
+                AddDebugResult($"❌ API connection failed: {response.StatusCode}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ API connection error: {ex.Message}");
+        }
+    }
+
+    private void TestManualNavigation()
+    {
+        try
+        {
+            AddDebugResult("🧭 Testing manual navigation...");
+            AddDebugResult($"🧭 Current URL: {Navigation.Uri}");
+            Navigation.NavigateTo("/");
+            AddDebugResult("✅ Manual navigation called");
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ Manual navigation failed: {ex.Message}");
+        }
+    }
+
+    private async Task CheckLocalStorage()
+    {
+        try
+        {
+            AddDebugResult("💾 Checking localStorage...");
+            
+            var authToken = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "authToken");
+            var currentUser = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "currentUser");
+            
+            AddDebugResult($"💾 authToken: {authToken ?? "null"}");
+            AddDebugResult($"💾 currentUser: {currentUser ?? "null"}");
+            
+            // List all localStorage keys
+            var allKeys = await JSRuntime.InvokeAsync<string[]>("eval", "Object.keys(localStorage)");
+            AddDebugResult($"💾 All localStorage keys: {string.Join(", ", allKeys)}");
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ localStorage check failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestStep1_ApiCall()
+    {
+        try
+        {
+            AddDebugResult("=== STEP 1: TESTING RAW API CALL ===");
+            
+            var loginRequest = new LoginRequest { UserName = testUsername, Password = testPassword };
+            var json = System.Text.Json.JsonSerializer.Serialize(loginRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            
+            AddDebugResult($"📤 Sending POST to api/auth/login");
+            AddDebugResult($"📤 Request body: {json}");
+            
+            var response = await HttpClient.PostAsync("api/auth/login", content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            
+            AddDebugResult($"📥 Response Status: {response.StatusCode}");
+            AddDebugResult($"📥 Response Content: {responseContent}");
+            
+            if (response.IsSuccessStatusCode)
+            {
+                AddDebugResult("✅ API call successful");
+            }
+            else
+            {
+                AddDebugResult("❌ API call failed");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ Step 1 failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestStep2_AuthService()
+    {
+        try
+        {
+            AddDebugResult("=== STEP 2: TESTING AUTHSERVICE ONLY ===");
+            
+            var loginRequest = new LoginRequest { UserName = testUsername, Password = testPassword };
+            var result = await AuthService.LoginAsync(loginRequest);
+            
+            AddDebugResult($"📨 AuthService Result:");
+            AddDebugResult($"   IsSuccess: {result.IsSuccess}");
+            AddDebugResult($"   Message: {result.Message}");
+            
+            if (result.Errors?.Any() == true)
+            {
+                AddDebugResult($"   Errors: {string.Join(", ", result.Errors)}");
+            }
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ Step 2 failed: {ex.Message}");
+        }
+    }
+
+    private async Task TestStep3_StateUpdate()
+    {
+        AddDebugResult("=== STEP 3: TESTING STATE UPDATE ===");
+        
+        AddDebugResult($"📊 Before: IsAuthenticated = {AuthService.IsAuthenticated}");
+        
+        // Force a state check
+        await Task.Delay(100);
+        StateHasChanged();
+        
+        AddDebugResult($"📊 After StateHasChanged: IsAuthenticated = {AuthService.IsAuthenticated}");
+    }
+
+    private void TestStep4_Navigation()
+    {
+        AddDebugResult("=== STEP 4: TESTING NAVIGATION ONLY ===");
+        
+        try
+        {
+            AddDebugResult($"🧭 Current URL: {Navigation.Uri}");
+            Navigation.NavigateTo("/");
+            AddDebugResult("✅ Navigation called successfully");
+        }
+        catch (Exception ex)
+        {
+            AddDebugResult($"❌ Navigation failed: {ex.Message}");
+        }
+    }
+
+    private void ClearDebugResults()
+    {
+        debugResults = "Ready to debug...\n";
+        StateHasChanged();
+    }
+
+    private void AddDebugResult(string message)
+    {
+        debugResults += $"[{DateTime.Now:HH:mm:ss.fff}] {message}\n";
+        StateHasChanged();
+    }
+}

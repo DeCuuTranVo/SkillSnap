@@ -1,0 +1,337 @@
+@page "/session-demo"
+@using System.Security.Claims
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@inject UserSessionService SessionService
+@inject NavigationManager Navigation
+@implements IDisposable
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>👤 User Session Information</h4>
+                </div>
+                <div class="card-body">
+                    @if (SessionService.IsAuthenticated)
+                    {
+                        <div class="user-info">
+                            <p><strong>Display Name:</strong> @SessionService.GetDisplayName()</p>
+                            <p><strong>Initials:</strong> @SessionService.GetUserInitials()</p>
+                            <p><strong>User ID:</strong> @SessionService.UserId</p>
+                            <p><strong>Username:</strong> @SessionService.UserName</p>
+                            <p><strong>Email:</strong> @SessionService.Email</p>
+                            <p><strong>Role:</strong> 
+                                <span class="badge bg-@(SessionService.IsAdmin() ? "danger" : "primary")">
+                                    @SessionService.GetRoleDisplayName()
+                                </span>
+                            </p>
+                            <p><strong>Portfolio User ID:</strong> @SessionService.PortfolioUserId</p>
+                            
+                            @if (SessionService.IsAdmin())
+                            {
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-crown"></i> You have administrator privileges!
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> You are not logged in.
+                            <a href="/login" class="btn btn-primary btn-sm ms-2">Login</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>✏️ Editing State</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Is in Edit Mode:</strong> 
+                        <span class="badge bg-@(SessionService.IsInEditMode ? "success" : "secondary")">
+                            @(SessionService.IsInEditMode ? "Yes" : "No")
+                        </span>
+                    </p>
+                    <p><strong>Current Editing Mode:</strong> @(SessionService.CurrentEditingMode ?? "None")</p>
+                    
+                    <div class="btn-group mb-3" role="group">
+                        <button class="btn btn-outline-primary" @onclick="() => StartEditingProject()">
+                            Edit Project
+                        </button>
+                        <button class="btn btn-outline-success" @onclick="() => StartEditingSkill()">
+                            Edit Skill
+                        </button>
+                        <button class="btn btn-outline-info" @onclick="() => StartEditingProfile()">
+                            Edit Profile
+                        </button>
+                        <button class="btn btn-outline-danger" @onclick="() => SessionService.ClearEditingState()">
+                            Clear
+                        </button>
+                    </div>
+                    
+                    @if (SessionService.CurrentEditingProject != null)
+                    {
+                        <div class="alert alert-primary">
+                            <strong>Editing Project:</strong> @SessionService.CurrentEditingProject.Title
+                        </div>
+                    }
+                    
+                    @if (SessionService.CurrentEditingSkill != null)
+                    {
+                        <div class="alert alert-success">
+                            <strong>Editing Skill:</strong> @SessionService.CurrentEditingSkill.Name
+                        </div>
+                    }
+                    
+                    @if (SessionService.CurrentEditingPortfolioUser != null)
+                    {
+                        <div class="alert alert-info">
+                            <strong>Editing Profile:</strong> @SessionService.CurrentEditingPortfolioUser.Name
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>📄 Page State</h4>
+                </div>
+                <div class="card-body">
+                    <p><strong>Last Visited Page:</strong> @(SessionService.LastVisitedPage ?? "None")</p>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Set Page State:</label>
+                        <div class="input-group">
+                            <input @bind="pageStateKey" class="form-control" placeholder="Key" />
+                            <input @bind="pageStateValue" class="form-control" placeholder="Value" />
+                            <button class="btn btn-primary" @onclick="SetPageState">Set</button>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button class="btn btn-secondary btn-sm" @onclick="() => SessionService.SetLastVisitedPage(Navigation.Uri)">
+                            Set Current Page as Last Visited
+                        </button>
+                    </div>
+                    
+                    @if (SessionService.PageState.Any())
+                    {
+                        <h6>Current Page State:</h6>
+                        <ul class="list-group list-group-flush">
+                            @foreach (var kvp in SessionService.PageState)
+                            {
+                                <li class="list-group-item d-flex justify-content-between">
+                                    <span><strong>@kvp.Key:</strong> @kvp.Value</span>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => SessionService.ClearPageState(kvp.Key)">
+                                        Remove
+                                    </button>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>🔍 Search & Filter State</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Search Query:</label>
+                        <div class="input-group">
+                            <input @bind="searchQuery" class="form-control" placeholder="Enter search query" />
+                            <button class="btn btn-primary" @onclick="() => SessionService.SetSearchQuery(searchQuery)">
+                                Set
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Current: @(SessionService.LastSearchQuery ?? "None")</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Skill Filter:</label>
+                        <select @bind="skillFilter" class="form-select">
+                            <option value="">Select a skill level</option>
+                            <option value="Beginner">Beginner</option>
+                            <option value="Intermediate">Intermediate</option>
+                            <option value="Advanced">Advanced</option>
+                            <option value="Professional">Professional</option>
+                        </select>
+                        <button class="btn btn-primary btn-sm mt-1" @onclick="() => SessionService.SetSkillFilter(skillFilter)">
+                            Apply Filter
+                        </button>
+                        <small class="form-text text-muted">Current: @(SessionService.SelectedSkillFilter ?? "None")</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Project Category:</label>
+                        <div class="input-group">
+                            <input @bind="projectCategory" class="form-control" placeholder="Category" />
+                            <button class="btn btn-primary" @onclick="() => SessionService.SetProjectCategory(projectCategory)">
+                                Set
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Current: @(SessionService.SelectedProjectCategory ?? "None")</small>
+                    </div>
+                    
+                    <button class="btn btn-outline-warning" @onclick="() => SessionService.ClearSearchState()">
+                        Clear All Search State
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>📝 Form Data</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Add Form Data:</label>
+                        <div class="input-group">
+                            <input @bind="formDataKey" class="form-control" placeholder="Form field name" />
+                            <input @bind="formDataValue" class="form-control" placeholder="Form field value" />
+                            <button class="btn btn-primary" @onclick="SetFormData">Add</button>
+                        </div>
+                    </div>
+                    
+                    @if (SessionService.FormData.Any())
+                    {
+                        <h6>Current Form Data:</h6>
+                        <div class="row">
+                            @foreach (var kvp in SessionService.FormData)
+                            {
+                                <div class="col-md-6 mb-2">
+                                    <div class="border p-2 rounded">
+                                        <strong>@kvp.Key:</strong> @kvp.Value
+                                        <button class="btn btn-outline-danger btn-sm float-end" @onclick="() => SessionService.ClearFormData(kvp.Key)">
+                                            Remove
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-outline-danger mt-2" @onclick="() => SessionService.ClearFormData()">
+                            Clear All Form Data
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string pageStateKey = "";
+    private string pageStateValue = "";
+    private string searchQuery = "";
+    private string skillFilter = "";
+    private string projectCategory = "";
+    private string formDataKey = "";
+    private string formDataValue = "";
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to session state changes to trigger UI updates
+        SessionService.OnUserSessionChanged += StateHasChanged;
+        SessionService.OnEditingStateChanged += StateHasChanged;
+        SessionService.OnPageStateChanged += StateHasChanged;
+    }
+
+    private void StartEditingProject()
+    {
+        // Create a mock project for demonstration
+        var mockProject = new Project
+        {
+            Id = 1,
+            Title = "Sample Project",
+            Description = "A sample project for demonstration",
+            ImageUrl = "https://example.com/image.jpg",
+            PortfolioUserId = SessionService.PortfolioUserId ?? 1
+        };
+        
+        SessionService.StartEditingProject(mockProject);
+    }
+
+    private void StartEditingSkill()
+    {
+        // Create a mock skill for demonstration
+        var mockSkill = new Skill
+        {
+            Id = 1,
+            Name = "C# Programming",
+            Level = "Advanced",
+            PortfolioUserId = SessionService.PortfolioUserId ?? 1
+        };
+        
+        SessionService.StartEditingSkill(mockSkill);
+    }
+
+    private void StartEditingProfile()
+    {
+        // Create a mock portfolio user for demonstration
+        var mockPortfolioUser = new PortfolioUser
+        {
+            Id = SessionService.PortfolioUserId ?? 1,
+            Name = SessionService.GetDisplayName(),
+            Bio = "Sample bio for demonstration",
+            ProfileImageUrl = "https://example.com/profile.jpg"
+        };
+        
+        SessionService.StartEditingProfile(mockPortfolioUser);
+    }
+
+    private void SetPageState()
+    {
+        if (!string.IsNullOrWhiteSpace(pageStateKey) && !string.IsNullOrWhiteSpace(pageStateValue))
+        {
+            SessionService.SetPageState(pageStateKey, pageStateValue);
+            pageStateKey = "";
+            pageStateValue = "";
+        }
+    }
+
+    private void SetFormData()
+    {
+        if (!string.IsNullOrWhiteSpace(formDataKey) && !string.IsNullOrWhiteSpace(formDataValue))
+        {
+            SessionService.SetFormData(formDataKey, formDataValue);
+            formDataKey = "";
+            formDataValue = "";
+        }
+    }
+
+    public void Dispose()
+    {
+        // Unsubscribe from session state changes
+        SessionService.OnUserSessionChanged -= StateHasChanged;
+        SessionService.OnEditingStateChanged -= StateHasChanged;
+        SessionService.OnPageStateChanged -= StateHasChanged;
+    }
+}
+
+<style>
+    .user-info p {
+        margin-bottom: 0.5rem;
+    }
+    
+    .border {
+        border: 1px solid #dee2e6 !important;
+    }
+</style>

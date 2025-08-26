@@ -30,7 +30,12 @@ namespace SkillSnap.Api.Controllers
         {
             try
             {
-                var portfolioUser = await _context.PortfolioUsers.FindAsync(id);
+                var portfolioUser = await _context.PortfolioUsers
+                    .Include(u => u.Projects)
+                    .Include(u => u.Skills)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == id);
+                    
                 if (portfolioUser == null)
                 {
                     return NotFound($"Portfolio user with ID {id} not found");
@@ -54,7 +59,12 @@ namespace SkillSnap.Api.Controllers
             _logger.LogInformation("Retrieving all portfolio users");
             try
             {
-                var users = await _context.PortfolioUsers.ToListAsync();
+                var users = await _context.PortfolioUsers
+                    .Include(u => u.Projects)
+                    .Include(u => u.Skills)
+                    .AsNoTracking()
+                    .ToListAsync();
+                    
                 _logger.LogInformation("Successfully retrieved {Count} portfolio users", users.Count);
                 return Ok(users);
             }
@@ -109,7 +119,9 @@ namespace SkillSnap.Api.Controllers
 
             try
             {
-                var existingUser = await _context.PortfolioUsers.FindAsync(id);
+                var existingUser = await _context.PortfolioUsers
+                    .FirstOrDefaultAsync(u => u.Id == id);
+                    
                 if (existingUser == null)
                 {
                     return NotFound($"Portfolio user with ID {id} not found");
@@ -141,7 +153,9 @@ namespace SkillSnap.Api.Controllers
         {
             try
             {
-                var portfolioUser = await _context.PortfolioUsers.FindAsync(id);
+                var portfolioUser = await _context.PortfolioUsers
+                    .FirstOrDefaultAsync(u => u.Id == id);
+                    
                 if (portfolioUser == null)
                 {
                     return NotFound($"Portfolio user with ID {id} not found");

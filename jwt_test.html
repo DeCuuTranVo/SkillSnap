@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JWT Test</title>
+</head>
+<body>
+    <h1>JWT Token Test</h1>
+    <script>
+        // The JWT token from the user
+        const jwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1laWRlbnRpZmllciI6ImQ5ODFiMWM3LTYxNGEtNDgyYS04NzBlLWRmNTEyYTQyODRjNyIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWUiOiJUZXN0QWRtaW4iLCJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9lbWFpbGFkZHJlc3MiOiJ0ZXN0YWRtaW5AdGVzdC5jb20iLCJQb3J0Zm9saW9Vc2VySWQiOiIwIiwianRpIjoiM2QwM2U1NWEtMGVjOC00YmI3LTk1MTYtNDg1ZWFmYjI5ODNmIiwiaWF0IjoxNzU2MDk0NDk3LCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBZG1pbiIsImV4cCI6MTc1NjA5ODA5NywiaXNzIjoiU2tpbGxTbmFwQXBpIiwiYXVkIjoiU2tpbGxTbmFwQ2xpZW50In0.example";
+        
+        // Parse JWT payload
+        function parseJWT(token) {
+            try {
+                const parts = token.split('.');
+                const payload = parts[1];
+                const decoded = atob(payload);
+                return JSON.parse(decoded);
+            } catch (e) {
+                console.error('Error parsing JWT:', e);
+                return null;
+            }
+        }
+        
+        // Extract a real JWT payload for testing
+        const testPayload = {
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier": "d981b1c7-614a-482a-870e-df512a4284c7",
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name": "TestAdmin",
+            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress": "testadmin@test.com",
+            "PortfolioUserId": "0",
+            "jti": "3d03e55a-0ec8-4bb7-9516-485eafb2983f",
+            "iat": 1756094497,
+            "http://schemas.microsoft.com/ws/2008/06/identity/claims/role": "Admin",
+            "exp": 1756098097,
+            "iss": "SkillSnapApi",
+            "aud": "SkillSnapClient"
+        };
+        
+        console.log('Test JWT Payload:', testPayload);
+        
+        // Simulate the claim mapping logic
+        function mapClaims(payload) {
+            const claims = [];
+            
+            for (const [key, value] of Object.entries(payload)) {
+                let claimType = key;
+                
+                // Map standard JWT claims to .NET claim types
+                switch (key) {
+                    case "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier":
+                        claimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"; // ClaimTypes.NameIdentifier
+                        break;
+                    case "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name":
+                        claimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"; // ClaimTypes.Name
+                        break;
+                    case "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress":
+                        claimType = "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"; // ClaimTypes.Email
+                        break;
+                    case "http://schemas.microsoft.com/ws/2008/06/identity/claims/role":
+                        claimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"; // ClaimTypes.Role
+                        break;
+                }
+                
+                claims.push({ type: claimType, value: value.toString() });
+            }
+            
+            return claims;
+        }
+        
+        const mappedClaims = mapClaims(testPayload);
+        console.log('Mapped Claims:', mappedClaims);
+        
+        // Check for role claim specifically
+        const roleClaim = mappedClaims.find(c => c.type === "http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+        console.log('Role Claim:', roleClaim);
+        console.log('Is Admin?', roleClaim && roleClaim.value === 'Admin');
+        
+        // Display results
+        document.body.innerHTML += '<h2>JWT Parsing Test Results</h2>';
+        document.body.innerHTML += '<h3>Original Payload:</h3>';
+        document.body.innerHTML += '<pre>' + JSON.stringify(testPayload, null, 2) + '</pre>';
+        document.body.innerHTML += '<h3>Mapped Claims:</h3>';
+        document.body.innerHTML += '<pre>' + JSON.stringify(mappedClaims, null, 2) + '</pre>';
+        document.body.innerHTML += '<h3>Role Check:</h3>';
+        document.body.innerHTML += '<p>Role Claim: ' + (roleClaim ? roleClaim.value : 'Not found') + '</p>';
+        document.body.innerHTML += '<p>Is Admin: ' + (roleClaim && roleClaim.value === 'Admin') + '</p>';
+    </script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+@page "/protected"
+@using Microsoft.AspNetCore.Authorization
+@using System.Security.Claims
+@attribute [Authorize]
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="protected-container">
+    <AuthorizeView>
+        <Authorized>
+            <div class="protected-content">
+                <div class="welcome-header">
+                    <h2>🔐 Protected Area</h2>
+                    <p class="lead">Welcome to the secured section, @context.User.Identity?.Name!</p>
+                </div>
+
+                <div class="user-info-card">
+                    <h4>Your Account Information</h4>
+                    <div class="info-row">
+                        <strong>Username:</strong> @context.User.Identity?.Name
+                    </div>
+                    <div class="info-row">
+                        <strong>Email:</strong> @context.User.FindFirst(ClaimTypes.Email)?.Value
+                    </div>
+                    <div class="info-row">
+                        <strong>Role:</strong> 
+                        <span class="role-badge role-@(context.User.FindFirst(ClaimTypes.Role)?.Value?.ToLower())">
+                            @context.User.FindFirst(ClaimTypes.Role)?.Value
+                        </span>
+                    </div>
+                </div>
+
+                <AuthorizeView Roles="Admin" Context="adminContext">
+                    <Authorized>
+                        <div class="admin-panel">
+                            <h4>🛠️ Admin Panel</h4>
+                            <p>You have administrative privileges. You can:</p>
+                            <ul>
+                                <li>Delete portfolio users</li>
+                                <li>Delete projects</li>
+                                <li>Delete skills</li>
+                                <li>Manage all content</li>
+                            </ul>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" @onclick="GoToHome">
+                        <i class="fas fa-home"></i> Go to Home
+                    </button>
+                    <button class="btn btn-danger" @onclick="HandleLogout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </Authorized>
+        <NotAuthorized>
+            <div class="access-denied">
+                <div class="access-denied-content">
+                    <h2>🚫 Access Denied</h2>
+                    <p>You need to be logged in to access this page.</p>
+                    <div class="auth-actions">
+                        <a href="/login" class="btn btn-primary">Login</a>
+                        <a href="/register" class="btn btn-outline-primary">Register</a>
+                    </div>
+                </div>
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
+</div>
+
+@code {
+    private void GoToHome()
+    {
+        Navigation.NavigateTo("/");
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthService.LogoutAsync();
+        Navigation.NavigateTo("/");
+    }
+}

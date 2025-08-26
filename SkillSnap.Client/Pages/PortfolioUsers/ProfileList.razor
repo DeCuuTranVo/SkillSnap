@@ -1,0 +1,137 @@
+@page "/profiles"
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@using SkillSnap.Client.Pages.Skills
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject NavigationManager NavigationManager
+
+@inject PortfolioUserService PortfolioUserService
+
+<PageTitle>SkillSnap - Portfolio Showcase</PageTitle>
+
+<div class="hero-section">
+    <img src="https://picsum.photos/1200/400?random=1" alt="Portfolio showcase" class="hero-image" />
+    <div class="hero-content">
+        <h1>Welcome to SkillSnap!</h1>
+        <p>Discover amazing portfolios and showcase your skills.</p>
+    </div>
+</div>
+
+<div class="profiles-container">
+    <div class="profiles-header">
+        <h2>Portfolio Showcase</h2>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="admin-actions">
+                    <a href="/profiles/create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Portfolio
+                    </a>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+    
+    @if (portfolioUsers == null)
+    {
+        <div class="loading">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+            </div>
+            <p>Loading portfolios...</p>
+        </div>
+    }
+    else if (!portfolioUsers.Any())
+    {
+        <div class="empty-state">
+            <i class="fas fa-users"></i>
+            <h3>No Portfolios Found</h3>
+            <p>There are no portfolio users to display at the moment.</p>
+        </div>
+    }
+    else
+    {
+        <div class="profiles-grid">
+            @foreach (var portfolio in portfolioUsers)
+            {
+                <div class="profile-item">
+                    <ProfileCard User="@portfolio" />
+                    
+                    @if (portfolio.Skills?.Any() == true)
+                    {
+                        <div class="profile-skills">
+                            <SkillTags PortfolioId="@portfolio.Id" Title="Skills" ShowLevel="true" Clickable="false" />
+                        </div>
+                    }
+                    
+                    @if (portfolio.Projects?.Any() == true)
+                    {
+                        <div class="profile-projects">
+                            <h4>Projects (@portfolio.Projects.Count)</h4>
+                            <div class="project-preview">
+                                @foreach (var project in portfolio.Projects.Take(3))
+                                {
+                                    <div class="project-mini-card">
+                                        @if (!string.IsNullOrEmpty(project.ImageUrl))
+                                        {
+                                            <img src="@project.ImageUrl" alt="@project.Title" class="project-mini-image" />
+                                        }
+                                        else
+                                        {
+                                            <div class="project-mini-placeholder">
+                                                <i class="fas fa-folder"></i>
+                                            </div>
+                                        }
+                                        <div class="project-mini-info">
+                                            <h5>@project.Title</h5>
+                                            @if (!string.IsNullOrEmpty(project.Description))
+                                            {
+                                                <p>@(project.Description.Length > 50 ? project.Description.Substring(0, 50) + "..." : project.Description)</p>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                                @if (portfolio.Projects.Count > 3)
+                                {
+                                    <div class="more-projects">
+                                        <span>+@(portfolio.Projects.Count - 3) more projects</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                    
+                    <div class="profile-actions">
+                        <button class="btn btn-primary" @onclick="() => ViewFullProfile(portfolio.Id)">
+                            <i class="fas fa-eye"></i> View Full Portfolio
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<PortfolioUser>? portfolioUsers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            portfolioUsers = await PortfolioUserService.GetPortfolioUsersAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error and show empty state
+            Console.WriteLine($"Error loading portfolio users: {ex.Message}");
+            portfolioUsers = new List<PortfolioUser>();
+        }
+    }
+
+    private void ViewFullProfile(int portfolioId)
+    {
+        // Navigate to detailed portfolio view (implement as needed)
+        NavigationManager.NavigateTo($"/profiles/details/{portfolioId}");
+    }
+}

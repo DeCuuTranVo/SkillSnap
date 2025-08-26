@@ -28,20 +28,44 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Components/RedirectToLogin.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9SZWRpcmVjdFRvTG9naW4ucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Components/UserSessionWidget.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50cy9Vc2VyU2Vzc2lvbldpZGdldC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Counter.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQ291bnRlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/JSRuntimeTest.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSlNSdW50aW1lVGVzdC5yYXpvcg==
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Sessions/SessionDemo.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2Vzc2lvbnMvU2Vzc2lvbkRlbW8ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/LoginDebug.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9naW5EZWJ1Zy5yYXpvcg==
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/AuthTest.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9BdXRoVGVzdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/RegisterDebug.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUmVnaXN0ZXJEZWJ1Zy5yYXpvcg==
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/CacheTest.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9DYWNoZVRlc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/JSRuntimeTest.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9KU1J1bnRpbWVUZXN0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/LoginDebug.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9Mb2dpbkRlYnVnLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/PerformanceTest.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9QZXJmb3JtYW5jZVRlc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Test/RegisterDebug.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvVGVzdC9SZWdpc3RlckRlYnVnLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
 [/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Weather.razor]
@@ -60,30 +84,42 @@ build_metadata.AdditionalFiles.CssScope = b-0hhz3o7xy7
 build_metadata.AdditionalFiles.TargetPath = TGF5b3V0L05hdk1lbnUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-nvrdlrhfia
 
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Auth/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQXV0aC9Mb2dpbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-rt2neueaq6
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Auth/Protected.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQXV0aC9Qcm90ZWN0ZWQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-snqhzbyzwb
+
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Auth/Register.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvQXV0aC9SZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-by7ftjhsrx
+
 [/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXMvSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-rfvb3al1we
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Login.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvTG9naW4ucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-5imu50fdih
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/PortfolioUsers/ProfileCard.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUG9ydGZvbGlvVXNlcnMvUHJvZmlsZUNhcmQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-uw15vvof78
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/ProfileCard.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvZmlsZUNhcmQucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-52zgfu0cip
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/PortfolioUsers/ProfileCreate.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUG9ydGZvbGlvVXNlcnMvUHJvZmlsZUNyZWF0ZS5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-7t6mcg7v4x
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/ProjectList.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvamVjdExpc3QucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-56m0ctvfla
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/PortfolioUsers/ProfileDetails.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUG9ydGZvbGlvVXNlcnMvUHJvZmlsZURldGFpbHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-3sgmkiobz3
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Protected.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvdGVjdGVkLnJhem9y
-build_metadata.AdditionalFiles.CssScope = b-kd2tneee5j
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/PortfolioUsers/ProfileList.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUG9ydGZvbGlvVXNlcnMvUHJvZmlsZUxpc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-l8hgfv7jbm
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Register.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUmVnaXN0ZXIucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = b-y5g1bl51uq
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Projects/ProjectList.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvUHJvamVjdHMvUHJvamVjdExpc3QucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-m5y0ao67sh
 
-[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/SkillTags.razor]
-build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2tpbGxUYWdzLnJhem9y
-build_metadata.AdditionalFiles.CssScope = b-0pmtd8kkc1
+[/Users/tranvq/code_repos/SkillSnap/SkillSnap.Client/Pages/Skills/SkillTags.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXMvU2tpbGxzL1NraWxsVGFncy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-zgic7scro5

@@ -23,5 +23,5 @@ public class Project
     public int PortfolioUserId { get; set; }
 
     // Navigation property
-    public virtual PortfolioUser PortfolioUser { get; set; } = null!;
+    public virtual PortfolioUser? PortfolioUser { get; set; }
 }

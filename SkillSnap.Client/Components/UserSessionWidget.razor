@@ -1,0 +1,120 @@
+@using SkillSnap.Client.Services
+@inject UserSessionService SessionService
+@implements IDisposable
+
+<div class="user-session-widget">
+    @if (SessionService.IsAuthenticated)
+    {
+        <div class="user-info-compact">
+            <div class="user-avatar">
+                @SessionService.GetUserInitials()
+            </div>
+            <div class="user-details">
+                <div class="user-name">@SessionService.GetDisplayName()</div>
+                <div class="user-role">@SessionService.GetRoleDisplayName()</div>
+                @if (SessionService.IsInEditMode)
+                {
+                    <div class="edit-indicator">
+                        <i class="fas fa-edit text-warning"></i>
+                        Editing @SessionService.CurrentEditingMode
+                    </div>
+                }
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="guest-info">
+            <i class="fas fa-user-circle"></i>
+            <span>Guest User</span>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        // Subscribe to session changes to update the UI
+        SessionService.OnUserSessionChanged += StateHasChanged;
+        SessionService.OnEditingStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        SessionService.OnUserSessionChanged -= StateHasChanged;
+        SessionService.OnEditingStateChanged -= StateHasChanged;
+    }
+}
+
+<style>
+    .user-session-widget {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+
+    .user-info-compact {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.875rem;
+        flex-shrink: 0;
+    }
+
+    .user-details {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .user-name {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: white;
+        margin-bottom: 0.125rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .user-role {
+        font-size: 0.75rem;
+        color: rgba(255, 255, 255, 0.8);
+        margin-bottom: 0.125rem;
+    }
+
+    .edit-indicator {
+        font-size: 0.7rem;
+        color: #ffc107;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    .guest-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 0.875rem;
+    }
+
+    .guest-info i {
+        font-size: 1.5rem;
+    }
+</style>

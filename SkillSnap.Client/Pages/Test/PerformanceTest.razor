@@ -1,0 +1,846 @@
+@page "/test/performance"
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@using SkillSnap.Client.Pages.Projects
+@using System.Diagnostics
+@inject ProjectService ProjectService
+@inject IJSRuntime JSRuntime
+@inject ILogger<PerformanceTest> Logger
+
+<PageTitle>Performance Test - ProjectList Component</PageTitle>
+
+<div class="performance-test-container">
+    <div class="test-header">
+        <h1><i class="fas fa-tachometer-alt"></i> Performance Test Suite</h1>
+        <p class="lead">Comprehensive performance testing for ProjectList component and ProjectService</p>
+    </div>
+
+    <div class="test-controls">
+        <div class="control-group">
+            <label for="portfolioId">Portfolio User ID:</label>
+            <input type="number" id="portfolioId" @bind="testPortfolioId" class="form-control" style="width: 150px; display: inline-block;" />
+        </div>
+        
+        <div class="control-group">
+            <label for="testIterations">Load Test Iterations:</label>
+            <input type="number" id="testIterations" @bind="testIterations" min="1" max="1000" class="form-control" style="width: 150px; display: inline-block;" />
+        </div>
+        
+        <div class="control-group">
+            <label for="concurrentUsers">Concurrent Users:</label>
+            <input type="number" id="concurrentUsers" @bind="concurrentUsers" min="1" max="50" class="form-control" style="width: 150px; display: inline-block;" />
+        </div>
+        
+        <div class="control-buttons">
+            <button class="btn btn-primary" @onclick="RunAllPerformanceTests" disabled="@isTestRunning">
+                <i class="fas @(isTestRunning ? "fa-spinner fa-spin" : "fa-play")"></i>
+                @(isTestRunning ? "Running Tests..." : "Run Performance Tests")
+            </button>
+            <button class="btn btn-secondary" @onclick="ClearResults">
+                <i class="fas fa-trash"></i> Clear Results
+            </button>
+        </div>
+    </div>
+
+    @if (testResults.Any())
+    {
+        <div class="test-results">
+            <h3><i class="fas fa-chart-line"></i> Performance Metrics</h3>
+            
+            <!-- Performance Summary Cards -->
+            <div class="metrics-summary">
+                <div class="metric-card response-time">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <span class="value">@(testResults.Where(r => r.AverageResponseTime.HasValue).Select(r => r.AverageResponseTime!.Value).DefaultIfEmpty(0).Average().ToString("F1"))ms</span>
+                        <span class="label">Avg Response Time</span>
+                    </div>
+                </div>
+                <div class="metric-card throughput">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <span class="value">@(testResults.Where(r => r.Throughput.HasValue).Select(r => r.Throughput!.Value).DefaultIfEmpty(0).Average().ToString("F1"))</span>
+                        <span class="label">Requests/sec</span>
+                    </div>
+                </div>
+                <div class="metric-card success-rate">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <span class="value">@((testResults.Count > 0 ? (testResults.Count(r => r.IsSuccess) * 100.0 / testResults.Count) : 0).ToString("F1"))%</span>
+                        <span class="label">Success Rate</span>
+                    </div>
+                </div>
+                <div class="metric-card errors">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <span class="value">@testResults.Count(r => !r.IsSuccess)</span>
+                        <span class="label">Total Errors</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Results Table -->
+            <div class="results-table">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Test Name</th>
+                            <th>Status</th>
+                            <th>Duration</th>
+                            <th>Avg Response</th>
+                            <th>Min/Max</th>
+                            <th>Throughput</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var result in testResults.OrderBy(r => r.TestName))
+                        {
+                            <tr class="@(result.IsSuccess ? "table-success" : "table-danger")">
+                                <td>
+                                    <i class="fas @(result.IsSuccess ? "fa-check text-success" : "fa-times text-danger")"></i>
+                                    @result.TestName
+                                </td>
+                                <td>
+                                    <span class="badge @(result.IsSuccess ? "badge-success" : "badge-danger")">
+                                        @(result.IsSuccess ? "PASS" : "FAIL")
+                                    </span>
+                                </td>
+                                <td>@(result.TotalDuration?.ToString() ?? "N/A")ms</td>
+                                <td>@(result.AverageResponseTime?.ToString("F1") ?? "N/A")ms</td>
+                                <td>
+                                    @if (result.MinResponseTime.HasValue && result.MaxResponseTime.HasValue)
+                                    {
+                                        <small>@(result.MinResponseTime.Value)ms / @(result.MaxResponseTime.Value)ms</small>
+                                    }
+                                    else
+                                    {
+                                        <small>N/A</small>
+                                    }
+                                </td>
+                                <td>@(result.Throughput?.ToString("F1") ?? "N/A") req/s</td>
+                                <td>
+                                    <small class="text-muted">@result.Details</small>
+                                    @if (!string.IsNullOrEmpty(result.ErrorMessage))
+                                    {
+                                        <br />
+                                        <small class="text-danger">Error: @result.ErrorMessage</small>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <!-- Real-time Performance Monitor -->
+    <div class="performance-monitor">
+        <h3><i class="fas fa-monitor"></i> Real-time Performance Monitor</h3>
+        <div class="monitor-wrapper">
+            @if (showComponent && isTestRunning)
+            {
+                <div class="monitor-active">
+                    <div class="monitor-stats">
+                        <div class="stat">
+                            <span class="stat-label">Current Test:</span>
+                            <span class="stat-value">@currentTestName</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Progress:</span>
+                            <span class="stat-value">@currentProgress%</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: @(currentProgress)%"></div>
+                    </div>
+                </div>
+            }
+            
+            <!-- ProjectList Component Under Test -->
+            @if (showComponent)
+            {
+                <div class="component-under-test">
+                    <h4>ProjectList Component</h4>
+                    <ProjectList PortfolioId="@testPortfolioId" />
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Run performance tests to see the ProjectList component in action with real-time monitoring.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private int testPortfolioId = 1;
+    private int testIterations = 100;
+    private int concurrentUsers = 10;
+    private bool isTestRunning = false;
+    private bool showComponent = false;
+    private string currentTestName = string.Empty;
+    private int currentProgress = 0;
+    private List<PerformanceTestResult> testResults = new();
+
+    private class PerformanceTestResult
+    {
+        public string TestName { get; set; } = string.Empty;
+        public bool IsSuccess { get; set; }
+        public long? TotalDuration { get; set; }
+        public double? AverageResponseTime { get; set; }
+        public long? MinResponseTime { get; set; }
+        public long? MaxResponseTime { get; set; }
+        public double? Throughput { get; set; }
+        public string Details { get; set; } = string.Empty;
+        public string ErrorMessage { get; set; } = string.Empty;
+        public int TotalRequests { get; set; }
+        public int SuccessfulRequests { get; set; }
+    }
+
+    private async Task RunAllPerformanceTests()
+    {
+        isTestRunning = true;
+        testResults.Clear();
+        showComponent = true;
+        currentProgress = 0;
+        StateHasChanged();
+
+        try
+        {
+            // Test 1: Response Time Test
+            await UpdateProgress("Response Time Test", 10);
+            await TestResponseTime();
+
+            // Test 2: Load Test
+            await UpdateProgress("Load Test", 30);
+            await TestLoad();
+
+            // Test 3: Stress Test
+            await UpdateProgress("Stress Test", 50);
+            await TestStress();
+
+            // Test 4: Concurrent Users Test
+            await UpdateProgress("Concurrent Users Test", 70);
+            await TestConcurrentUsers();
+
+            // Test 5: Memory Usage Test
+            await UpdateProgress("Memory Usage Test", 85);
+            await TestMemoryUsage();
+
+            // Test 6: Scalability Test
+            await UpdateProgress("Scalability Test", 100);
+            await TestScalability();
+
+            currentProgress = 100;
+            currentTestName = "All tests completed";
+            
+            Logger.LogInformation("Performance test suite completed. Average response time: {AvgResponseTime}ms", 
+                testResults.Where(r => r.AverageResponseTime.HasValue).Select(r => r.AverageResponseTime!.Value).DefaultIfEmpty(0).Average());
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during performance test execution");
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Test Suite Execution",
+                IsSuccess = false,
+                ErrorMessage = ex.Message,
+                Details = "Failed to complete performance test suite"
+            });
+        }
+        finally
+        {
+            isTestRunning = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task UpdateProgress(string testName, int progress)
+    {
+        currentTestName = testName;
+        currentProgress = progress;
+        StateHasChanged();
+        await Task.Delay(100); // Small delay to show progress
+    }
+
+    private async Task TestResponseTime()
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var responseTimes = new List<long>();
+        var successCount = 0;
+
+        try
+        {
+            for (int i = 0; i < Math.Min(testIterations, 50); i++)
+            {
+                var requestStopwatch = Stopwatch.StartNew();
+                try
+                {
+                    await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                    requestStopwatch.Stop();
+                    responseTimes.Add(requestStopwatch.ElapsedMilliseconds);
+                    successCount++;
+                }
+                catch
+                {
+                    requestStopwatch.Stop();
+                    responseTimes.Add(requestStopwatch.ElapsedMilliseconds);
+                }
+                
+                if (i % 10 == 0)
+                {
+                    currentProgress = 10 + (int)((double)i / Math.Min(testIterations, 50) * 15);
+                    StateHasChanged();
+                }
+            }
+
+            stopwatch.Stop();
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Response Time Test",
+                IsSuccess = successCount > 0,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                AverageResponseTime = responseTimes.Count > 0 ? responseTimes.Average() : 0,
+                MinResponseTime = responseTimes.Count > 0 ? responseTimes.Min() : 0,
+                MaxResponseTime = responseTimes.Count > 0 ? responseTimes.Max() : 0,
+                Throughput = responseTimes.Count > 0 ? (responseTimes.Count * 1000.0) / stopwatch.ElapsedMilliseconds : 0,
+                TotalRequests = responseTimes.Count,
+                SuccessfulRequests = successCount,
+                Details = $"Tested {responseTimes.Count} requests, {successCount} successful"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Response Time Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during response time test"
+            });
+        }
+    }
+
+    private async Task TestLoad()
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var successCount = 0;
+        var totalRequests = Math.Min(testIterations, 200);
+
+        try
+        {
+            var tasks = new List<Task>();
+            var semaphore = new SemaphoreSlim(10); // Limit concurrent requests
+
+            for (int i = 0; i < totalRequests; i++)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                        Interlocked.Increment(ref successCount);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                }));
+
+                if (i % 20 == 0)
+                {
+                    currentProgress = 30 + (int)((double)i / totalRequests * 15);
+                    StateHasChanged();
+                }
+            }
+
+            await Task.WhenAll(tasks);
+            stopwatch.Stop();
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Load Test",
+                IsSuccess = successCount > totalRequests * 0.8, // 80% success rate threshold
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                Throughput = (successCount * 1000.0) / stopwatch.ElapsedMilliseconds,
+                TotalRequests = totalRequests,
+                SuccessfulRequests = successCount,
+                Details = $"Processed {totalRequests} requests, {successCount} successful, {((double)successCount/totalRequests*100):F1}% success rate"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Load Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during load test"
+            });
+        }
+    }
+
+    private async Task TestStress()
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var successCount = 0;
+        var totalRequests = Math.Min(testIterations * 2, 500);
+
+        try
+        {
+            var tasks = new List<Task>();
+
+            for (int i = 0; i < totalRequests; i++)
+            {
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                        Interlocked.Increment(ref successCount);
+                    }
+                    catch
+                    {
+                        // Count failures but continue
+                    }
+                }));
+
+                if (i % 50 == 0)
+                {
+                    currentProgress = 50 + (int)((double)i / totalRequests * 15);
+                    StateHasChanged();
+                }
+            }
+
+            await Task.WhenAll(tasks);
+            stopwatch.Stop();
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Stress Test",
+                IsSuccess = successCount > 0,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                Throughput = (successCount * 1000.0) / stopwatch.ElapsedMilliseconds,
+                TotalRequests = totalRequests,
+                SuccessfulRequests = successCount,
+                Details = $"High load test: {totalRequests} concurrent requests, {successCount} successful, {((double)successCount/totalRequests*100):F1}% success rate"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Stress Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during stress test"
+            });
+        }
+    }
+
+    private async Task TestConcurrentUsers()
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var userResults = new List<(int UserId, int SuccessCount, double AvgResponseTime)>();
+
+        try
+        {
+            var userTasks = new List<Task>();
+
+            for (int userId = 1; userId <= concurrentUsers; userId++)
+            {
+                var currentUserId = userId;
+                userTasks.Add(Task.Run(async () =>
+                {
+                    var userSuccessCount = 0;
+                    var userResponseTimes = new List<long>();
+                    
+                    for (int i = 0; i < 10; i++)
+                    {
+                        var requestStopwatch = Stopwatch.StartNew();
+                        try
+                        {
+                            await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                            requestStopwatch.Stop();
+                            userResponseTimes.Add(requestStopwatch.ElapsedMilliseconds);
+                            userSuccessCount++;
+                        }
+                        catch
+                        {
+                            requestStopwatch.Stop();
+                        }
+                    }
+                    
+                    userResults.Add((currentUserId, userSuccessCount, userResponseTimes.Count > 0 ? userResponseTimes.Average() : 0));
+                }));
+            }
+
+            await Task.WhenAll(userTasks);
+            stopwatch.Stop();
+
+            var totalSuccessful = userResults.Sum(r => r.SuccessCount);
+            var totalRequests = concurrentUsers * 10;
+            var avgResponseTime = userResults.Where(r => r.AvgResponseTime > 0).Select(r => r.AvgResponseTime).DefaultIfEmpty(0).Average();
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Concurrent Users Test",
+                IsSuccess = totalSuccessful > totalRequests * 0.7, // 70% success rate threshold
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                AverageResponseTime = avgResponseTime,
+                Throughput = (totalSuccessful * 1000.0) / stopwatch.ElapsedMilliseconds,
+                TotalRequests = totalRequests,
+                SuccessfulRequests = totalSuccessful,
+                Details = $"{concurrentUsers} concurrent users, {totalSuccessful}/{totalRequests} successful requests"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Concurrent Users Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during concurrent users test"
+            });
+        }
+    }
+
+    private async Task TestMemoryUsage()
+    {
+        var stopwatch = Stopwatch.StartNew();
+
+        try
+        {
+            var initialMemory = GC.GetTotalMemory(false);
+            
+            // Perform multiple operations
+            for (int i = 0; i < 50; i++)
+            {
+                await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                
+                if (i % 10 == 0)
+                {
+                    currentProgress = 85 + (int)((double)i / 50 * 10);
+                    StateHasChanged();
+                }
+            }
+
+            // Force garbage collection
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            var finalMemory = GC.GetTotalMemory(false);
+            var memoryDelta = finalMemory - initialMemory;
+            
+            stopwatch.Stop();
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Memory Usage Test",
+                IsSuccess = memoryDelta < 10_000_000, // Less than 10MB increase
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                Details = $"Memory delta: {memoryDelta / 1024.0:F1} KB, Initial: {initialMemory / 1024.0:F1} KB, Final: {finalMemory / 1024.0:F1} KB"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Memory Usage Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during memory usage test"
+            });
+        }
+    }
+
+    private async Task TestScalability()
+    {
+        var stopwatch = Stopwatch.StartNew();
+        var scalabilityResults = new List<(int Load, double Throughput, double AvgResponseTime)>();
+
+        try
+        {
+            var loads = new[] { 1, 5, 10, 20 };
+            
+            foreach (var load in loads)
+            {
+                var loadStopwatch = Stopwatch.StartNew();
+                var loadSuccessCount = 0;
+                var loadResponseTimes = new List<long>();
+
+                var loadTasks = new List<Task>();
+                for (int i = 0; i < load; i++)
+                {
+                    loadTasks.Add(Task.Run(async () =>
+                    {
+                        var taskStopwatch = Stopwatch.StartNew();
+                        try
+                        {
+                            await ProjectService.GetProjectsByUserAsync(testPortfolioId);
+                            taskStopwatch.Stop();
+                            lock (loadResponseTimes)
+                            {
+                                loadResponseTimes.Add(taskStopwatch.ElapsedMilliseconds);
+                                loadSuccessCount++;
+                            }
+                        }
+                        catch
+                        {
+                            taskStopwatch.Stop();
+                        }
+                    }));
+                }
+
+                await Task.WhenAll(loadTasks);
+                loadStopwatch.Stop();
+
+                var throughput = (loadSuccessCount * 1000.0) / loadStopwatch.ElapsedMilliseconds;
+                var avgResponseTime = loadResponseTimes.Count > 0 ? loadResponseTimes.Average() : 0;
+                
+                scalabilityResults.Add((load, throughput, avgResponseTime));
+                
+                currentProgress = 95 + (Array.IndexOf(loads, load) * 2);
+                StateHasChanged();
+            }
+
+            stopwatch.Stop();
+
+            var throughputDegradation = scalabilityResults.Count > 1 ? 
+                (scalabilityResults[0].Throughput - scalabilityResults.Last().Throughput) / scalabilityResults[0].Throughput * 100 : 0;
+
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Scalability Test",
+                IsSuccess = throughputDegradation < 50, // Less than 50% degradation
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                Details = $"Tested loads: {string.Join(", ", loads)}. Throughput degradation: {throughputDegradation:F1}%"
+            });
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            testResults.Add(new PerformanceTestResult
+            {
+                TestName = "Scalability Test",
+                IsSuccess = false,
+                TotalDuration = stopwatch.ElapsedMilliseconds,
+                ErrorMessage = ex.Message,
+                Details = "Exception occurred during scalability test"
+            });
+        }
+    }
+
+    private void ClearResults()
+    {
+        testResults.Clear();
+        showComponent = false;
+        currentProgress = 0;
+        currentTestName = string.Empty;
+        StateHasChanged();
+    }
+}
+
+<style>
+    .performance-test-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .test-header {
+        text-align: center;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .test-header h1 {
+        color: #495057;
+        margin-bottom: 10px;
+    }
+
+    .test-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .control-group {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .control-group label {
+        font-weight: 600;
+        color: #495057;
+    }
+
+    .control-buttons {
+        margin-left: auto;
+    }
+
+    .control-buttons .btn {
+        margin-left: 10px;
+    }
+
+    .metrics-summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        padding: 25px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        color: white;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .metric-card.response-time {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .metric-card.throughput {
+        background: linear-gradient(135deg, #f093fb, #f5576c);
+    }
+
+    .metric-card.success-rate {
+        background: linear-gradient(135deg, #4facfe, #00f2fe);
+    }
+
+    .metric-card.errors {
+        background: linear-gradient(135deg, #fa709a, #fee140);
+    }
+
+    .metric-card i {
+        font-size: 2.5rem;
+    }
+
+    .metric-card .value {
+        display: block;
+        font-size: 1.8rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .metric-card .label {
+        display: block;
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-top: 5px;
+    }
+
+    .performance-monitor {
+        margin-top: 30px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .monitor-active {
+        margin-bottom: 20px;
+        padding: 15px;
+        background: white;
+        border-radius: 8px;
+        border-left: 4px solid #007bff;
+    }
+
+    .monitor-stats {
+        display: flex;
+        gap: 30px;
+        margin-bottom: 15px;
+    }
+
+    .stat {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .stat-label {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 600;
+    }
+
+    .stat-value {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .progress-bar {
+        width: 100%;
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #007bff, #28a745);
+        transition: width 0.3s ease;
+    }
+
+    .component-under-test {
+        margin-top: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
+
+    .results-table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-top: 20px;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+    }
+
+    .badge-danger {
+        background-color: #dc3545;
+    }
+
+    .table-success {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+
+    .table-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+</style>

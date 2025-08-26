@@ -1,0 +1,19 @@
+Describe your authentication and security implementation.
+
+Explain how you configured ASP.NET Identity, handled token management, and applied role-based authorization.
+
+How did you implement security?
+
+---
+
+SkillSnap Authentication and Security Implementation
+
+The SkillSnap application implements a comprehensive multi-layered security architecture built on ASP.NET Core Identity framework, JWT token authentication, and role-based authorization to ensure robust protection of user data and system resources. This security implementation provides enterprise-grade protection while maintaining seamless user experience across the platform.
+
+ASP.NET Core Identity configuration forms the foundation of the authentication system, integrated directly into the Entity Framework Core database context through the ApplicationUser model. The Identity framework manages user registration, password validation, and account security with configurable password complexity requirements including minimum eight-character length, special character requirements, and strong encryption. The system implements secure user credential storage with automatic password hashing and salt generation, ensuring sensitive authentication data remains protected against common attack vectors.
+
+Token management utilizes JSON Web Token (JWT) Bearer authentication with strategically configured 60-minute expiration periods to balance security with user convenience. The JWT implementation includes secure token generation with cryptographic signing, proper claims management for user identification and role assignment, and automatic token validation on protected API endpoints. The authentication controller handles secure login processes with proper credential verification, token creation with embedded user claims, and logout functionality with client-side token cleanup. Token refresh mechanisms ensure uninterrupted user sessions while maintaining security standards.
+
+Role-based authorization operates through the RoleSD static class, implementing a two-tier permission system with Admin and User roles. Admin users receive comprehensive system access including portfolio management for all users, complete CRUD operations across all entities, and system administration capabilities. Regular users maintain secure access to their personal portfolio data with restricted permissions ensuring data isolation and privacy protection. Authorization attributes protect API endpoints with granular permission controls, preventing unauthorized access attempts and ensuring proper access control enforcement.
+
+Additional security measures include CORS configuration for secure cross-origin requests during development, comprehensive input validation and sanitization across all user inputs, structured error handling that prevents information disclosure, and secure API endpoint protection with proper HTTP status code responses. The implementation also features authentication state management in the Blazor frontend through custom authentication state providers, ensuring consistent security context throughout the user interface and maintaining secure session management across component interactions.

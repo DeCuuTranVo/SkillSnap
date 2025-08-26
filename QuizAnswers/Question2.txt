@@ -1,0 +1,19 @@
+Discuss the main challenges you faced and how you solved them.
+
+Describe specific obstacles (such as debugging, authentication, or UI integration) and how you addressed them.
+
+Discuss development challenges.
+
+---
+
+Development Challenges and Solutions in SkillSnap
+
+Developing SkillSnap presented numerous technical challenges that required innovative solutions and strategic problem-solving approaches. Throughout the development process, three primary obstacles emerged as the most significant hurdles that demanded comprehensive resolution strategies.
+
+The first major challenge involved implementing secure JWT-based authentication and authorization across the dual-architecture system. Integrating ASP.NET Core Identity with custom authentication state providers in Blazor WebAssembly proved complex, particularly when managing token expiration, role-based access control, and cross-component state synchronization. The solution required developing a custom authentication state provider that seamlessly handled token storage, automatic renewal, and role validation. GitHub Copilot significantly accelerated this process by generating secure JWT token creation logic with proper claims configuration and suggesting robust error handling patterns for authentication failures. The implementation included comprehensive role management through the RoleSD static class, ensuring consistent authorization checks across all API endpoints.
+
+The second significant obstacle centered on performance optimization and caching implementation. Balancing data freshness with response time optimization while maintaining data integrity across concurrent users presented substantial challenges. Entity Framework query optimization became critical when dealing with complex relationship mappings between portfolios, projects, and skills. The resolution involved implementing strategic memory caching with carefully configured expiration policies, utilizing AsNoTracking() for read-only operations, and developing sophisticated cache hit/miss testing mechanisms. These optimizations reduced API response times significantly while maintaining data consistency across multiple user sessions.
+
+The third challenge involved debugging and UI integration complexities, particularly managing state synchronization between the Blazor WebAssembly client and the REST API backend. Form validation, real-time UI updates, and component communication required intricate coordination. The solution implemented centralized state management through scoped services, proper component lifecycle management with StateHasChanged() calls, and comprehensive error handling with user-friendly feedback mechanisms. Additionally, developing an interactive testing suite with comprehensive cache and performance testing tools provided valuable debugging capabilities that helped identify and resolve integration issues efficiently.
+
+These challenges ultimately strengthened the application's architecture and provided valuable learning experiences in modern web development practices.

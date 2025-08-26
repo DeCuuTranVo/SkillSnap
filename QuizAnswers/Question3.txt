@@ -1,0 +1,21 @@
+Explain how you structured your app's core features.
+
+Share your approach to handling business logic, setting up the database, designing Blazor components, and building your API.
+
+How did you structure business logic, data persistence, and state management?
+
+---
+
+SkillSnap Application Architecture and Core Feature Structure
+
+The SkillSnap application employs a sophisticated dual-architecture design that separates concerns through a robust ASP.NET Core 9.0 Web API backend and a modern Blazor WebAssembly frontend. This architectural approach ensures scalability, maintainability, and optimal performance while providing a seamless user experience for portfolio management functionality.
+
+The business logic structure follows a layered architecture pattern with clear separation of responsibilities. The API backend handles all core business operations through dedicated controllers for authentication, portfolios, projects, and skills management. Each controller implements comprehensive CRUD operations with proper error handling, logging, and validation. The service layer utilizes dependency injection patterns with scoped services including PortfolioUserService, ProjectService, SkillService, and AuthService, ensuring consistent business rule enforcement across all operations. Authentication logic is centralized through JWT-based token management with role-based authorization using the RoleSD static class, providing granular access control for Admin and User roles.
+
+Database design and data persistence leverage Entity Framework Core with SQLite for development, featuring four main entities: ApplicationUser, PortfolioUser, Project, and Skill. The SkillSnapContext manages relationship configurations between entities, ensuring referential integrity and optimized query performance. Strategic implementation includes AsNoTracking() for read-only operations, memory caching for frequently accessed data, and automatic database seeding with test data. Migration management supports evolving schema requirements while maintaining data consistency.
+
+Blazor component architecture emphasizes reusability and modularity through well-structured component hierarchies. Key components include ProfileCard, ProjectList, SkillTags, and UserSessionWidget, each designed with proper parameter binding and event handling. The component design implements Bootstrap 5 integration for responsive layouts, custom CSS for enhanced visual appeal, and Font Awesome icons for professional presentation.
+
+State management operates through multiple coordinated layers: client-side component state with proper data binding, custom authentication state provider for seamless session management, and centralized UserSessionService for form data persistence. The implementation ensures real-time UI updates through StateHasChanged() calls and maintains data synchronization between the Blazor frontend and REST API backend, providing users with immediate feedback and consistent application behavior across all interactions.
+
+

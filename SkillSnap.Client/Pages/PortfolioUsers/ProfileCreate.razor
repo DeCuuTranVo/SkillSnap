@@ -1,0 +1,204 @@
+@page "/profiles/create"
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.ComponentModel.DataAnnotations
+
+@attribute [Authorize(Roles = "Admin")]
+
+@inject PortfolioUserService PortfolioUserService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Create Portfolio User - SkillSnap</PageTitle>
+
+<div class="create-profile-container">
+    <div class="page-header">
+        <div class="header-content">
+            <h1>
+                <i class="fas fa-user-plus"></i>
+                Create Portfolio User
+            </h1>
+            <p class="header-description">Add a new portfolio user to the SkillSnap platform</p>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-outline-secondary" @onclick="GoBack">
+                <i class="fas fa-arrow-left"></i> Back to Portfolios
+            </button>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <EditForm Model="portfolioUser" OnValidSubmit="HandleValidSubmit" class="portfolio-form">
+            <DataAnnotationsValidator />
+            
+            <div class="form-section">
+                <h3>Basic Information</h3>
+                
+                <div class="form-group">
+                    <label for="name" class="form-label">
+                        <i class="fas fa-user"></i> Full Name *
+                    </label>
+                    <InputText id="name" 
+                               @bind-Value="portfolioUser.Name" 
+                               class="form-control" 
+                               placeholder="Enter full name" />
+                    <ValidationMessage For="@(() => portfolioUser.Name)" class="validation-message" />
+                </div>
+
+                <div class="form-group">
+                    <label for="bio" class="form-label">
+                        <i class="fas fa-file-text"></i> Bio *
+                    </label>
+                    <InputTextArea id="bio" 
+                                   @bind-Value="portfolioUser.Bio" 
+                                   class="form-control bio-textarea" 
+                                   placeholder="Enter a brief bio or description"
+                                   rows="4" />
+                    <ValidationMessage For="@(() => portfolioUser.Bio)" class="validation-message" />
+                    <div class="form-text">
+                        <small class="text-muted">@(portfolioUser.Bio?.Length ?? 0) / 500 characters</small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="profileImage" class="form-label">
+                        <i class="fas fa-image"></i> Profile Image URL
+                    </label>
+                    <InputText id="profileImage" 
+                               @bind-Value="portfolioUser.ProfileImageUrl" 
+                               class="form-control" 
+                               placeholder="https://example.com/image.jpg (optional)" />
+                    <ValidationMessage For="@(() => portfolioUser.ProfileImageUrl)" class="validation-message" />
+                    
+                    @if (!string.IsNullOrEmpty(portfolioUser.ProfileImageUrl))
+                    {
+                        <div class="image-preview">
+                            <img src="@portfolioUser.ProfileImageUrl" alt="Profile preview" class="preview-img" />
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (isSubmitting)
+            {
+                <div class="form-actions disabled">
+                    <button type="button" class="btn btn-primary" disabled>
+                        <i class="fas fa-spinner fa-spin"></i> Creating Portfolio...
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Create Portfolio User
+                    </button>
+                    <button type="button" class="btn btn-secondary" @onclick="ResetForm">
+                        <i class="fas fa-undo"></i> Reset Form
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" @onclick="GoBack">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    @errorMessage
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success" role="alert">
+                    <i class="fas fa-check-circle"></i>
+                    @successMessage
+                </div>
+            }
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private CreatePortfolioUserModel portfolioUser = new();
+    private bool isSubmitting = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override void OnInitialized()
+    {
+        // Initialize with default values if needed
+        portfolioUser = new CreatePortfolioUserModel();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isSubmitting = true;
+        errorMessage = null;
+        successMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var newPortfolioUser = new PortfolioUser
+            {
+                Name = portfolioUser.Name!.Trim(),
+                Bio = portfolioUser.Bio!.Trim(),
+                ProfileImageUrl = string.IsNullOrWhiteSpace(portfolioUser.ProfileImageUrl) 
+                    ? string.Empty 
+                    : portfolioUser.ProfileImageUrl.Trim()
+            };
+
+            var createdUser = await PortfolioUserService.AddPortfolioUserAsync(newPortfolioUser);
+            
+            successMessage = $"Portfolio user '{createdUser.Name}' created successfully!";
+            
+            // Show success message briefly, then navigate
+            StateHasChanged();
+            await Task.Delay(1500);
+            
+            Navigation.NavigateTo("/profiles");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Failed to create portfolio user: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetForm()
+    {
+        portfolioUser = new CreatePortfolioUserModel();
+        errorMessage = null;
+        successMessage = null;
+        StateHasChanged();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo("/profiles");
+    }
+
+    // Model for form validation
+    private class CreatePortfolioUserModel
+    {
+        [Required(ErrorMessage = "Full name is required")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Name must be between 2 and 100 characters")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Bio is required")]
+        [StringLength(500, MinimumLength = 10, ErrorMessage = "Bio must be between 10 and 500 characters")]
+        public string? Bio { get; set; }
+
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string? ProfileImageUrl { get; set; }
+    }
+}

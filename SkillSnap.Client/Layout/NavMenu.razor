@@ -1,4 +1,5 @@
-﻿@inject AuthService AuthService
+﻿@using System.Security.Claims
+@inject AuthService AuthService
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
@@ -18,69 +19,92 @@
         </div>
         
         <div class="nav-item px-3">
+            <NavLink class="nav-link" href="profiles">
+                <span class="bi bi-people-fill" aria-hidden="true"></span> Portfolios
+            </NavLink>
+        </div>
+        
+        <div class="nav-item px-3">
             <NavLink class="nav-link" href="jsruntimetest">
                 <span class="bi bi-gear-fill" aria-hidden="true"></span> JS Runtime Test
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="logindebug">
-                <span class="bi bi-bug-fill" aria-hidden="true"></span> Login Debug
+            <NavLink class="nav-link" href="authtest">
+                <span class="bi bi-shield-alt" aria-hidden="true"></span> Auth Test
             </NavLink>
         </div>
         
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="registerdebug">
-                <span class="bi bi-person-check-fill" aria-hidden="true"></span> Register Debug
+            <NavLink class="nav-link" href="test/cache">
+                <span class="bi bi-memory" aria-hidden="true"></span> Cache Test
             </NavLink>
         </div>
         
-        @if (AuthService.IsAuthenticated)
-        {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="counter">
-                    <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="weather">
-                    <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="protected">
-                    <span class="bi bi-shield-lock-fill" aria-hidden="true"></span> Protected
-                </NavLink>
-            </div>
-            
-            <div class="nav-divider"></div>
-            
-            <div class="nav-item px-3 user-info">
-                <div class="user-details">
-                    <span class="user-name">@AuthService.CurrentUserName</span>
-                    <span class="user-role">(@AuthService.CurrentUserRole)</span>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="test/performance">
+                <span class="bi bi-speedometer2" aria-hidden="true"></span> Performance Test
+            </NavLink>
+        </div>
+        
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="counter">
+                        <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
+                    </NavLink>
                 </div>
-            </div>
-            
-            <div class="nav-item px-3">
-                <button class="nav-link btn btn-link logout-btn" @onclick="HandleLogout">
-                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
-                </button>
-            </div>
-        }
-        else
-        {
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="login">
-                    <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
-                </NavLink>
-            </div>
-            <div class="nav-item px-3">
-                <NavLink class="nav-link" href="register">
-                    <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Register
-                </NavLink>
-            </div>
-        }
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="weather">
+                        <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="protected">
+                        <span class="bi bi-shield-lock-fill" aria-hidden="true"></span> Protected
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="session-demo">
+                        <span class="bi bi-person-circle" aria-hidden="true"></span> Session Demo
+                    </NavLink>
+                </div>
+                
+                <AuthorizeView Roles="Admin">
+                    <Authorized Context="adminContext">
+                        <div class="nav-divider"></div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="profiles/create">
+                                <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Create Portfolio
+                            </NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+                
+                <div class="nav-divider"></div>
+                
+                <UserSessionWidget />
+                
+                <div class="nav-item px-3">
+                    <button class="nav-link btn btn-link logout-btn" @onclick="HandleLogout">
+                        <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                    </button>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="login">
+                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="register">
+                        <span class="bi bi-person-plus-fill" aria-hidden="true"></span> Register
+                    </NavLink>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
     </nav>
 </div>
 
@@ -88,16 +112,6 @@
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    protected override void OnInitialized()
-    {
-        AuthService.AuthStateChanged += OnAuthStateChanged;
-    }
-
-    private void OnAuthStateChanged(bool isAuthenticated)
-    {
-        InvokeAsync(StateHasChanged);
-    }
 
     private void ToggleNavMenu()
     {
@@ -108,10 +122,5 @@
     {
         await AuthService.LogoutAsync();
         collapseNavMenu = true; // Close the menu after logout
-    }
-
-    public void Dispose()
-    {
-        AuthService.AuthStateChanged -= OnAuthStateChanged;
     }
 }

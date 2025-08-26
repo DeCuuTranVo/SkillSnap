@@ -1,0 +1,996 @@
+@page "/profiles/details/{id:int}"
+@using SkillSnap.Client.Models
+@using SkillSnap.Client.Services
+@using SkillSnap.Client.Pages.PortfolioUsers
+@using SkillSnap.Client.Pages.Projects
+@using SkillSnap.Client.Pages.Skills
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.ComponentModel.DataAnnotations
+
+@inject PortfolioUserService PortfolioUserService
+@inject ProjectService ProjectService
+@inject SkillService SkillService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<PageTitle>SkillSnap - Portfolio Showcase</PageTitle>
+
+<div class="hero-section">
+    <img src="https://picsum.photos/1200/400?random=1" alt="Portfolio showcase" class="hero-image" />
+    <div class="hero-content">
+        <h1>Welcome to SkillSnap!</h1>
+        <p>Discover amazing portfolios and showcase your skills.</p>
+    </div>
+</div>
+
+<h2>Featured Portfolio</h2>
+
+@if (mainPortfolio == null)
+{
+    <div class="loading">
+        <p>Loading portfolio...</p>
+    </div>
+}
+else
+{
+    <ProfileCard User="@mainPortfolio" />
+
+    <div style="margin-top: 2rem;">
+        <SkillTags PortfolioId="@mainPortfolio.Id" Title="Technical Skills" ShowLevel="true" Clickable="true" />
+    </div>
+
+    <div style="margin-top: 3rem;">
+        <ProjectList PortfolioId="@mainPortfolio.Id" />
+    </div>
+
+    <!-- Project Management Section -->
+    <div class="project-management-section">
+        <div class="section-header">
+            <h3>
+                <i class="fas fa-project-diagram"></i>
+                Project Management
+            </h3>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" @onclick="ShowAddProjectForm">
+                            <i class="fas fa-plus"></i> Add New Project
+                        </button>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        @if (showAddProjectForm)
+        {
+            <div class="project-form-container">
+                <div class="form-header">
+                    <h4>
+                        <i class="fas fa-plus-circle"></i>
+                        Add New Project
+                    </h4>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelProjectForm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <EditForm Model="newProject" OnValidSubmit="HandleAddProject" class="project-form">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="projectTitle" class="form-label">
+                                <i class="fas fa-heading"></i> Project Title *
+                            </label>
+                            <InputText id="projectTitle" 
+                                       @bind-Value="newProject.Title" 
+                                       class="form-control" 
+                                       placeholder="Enter project title" />
+                            <ValidationMessage For="@(() => newProject.Title)" class="validation-message" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="projectImage" class="form-label">
+                                <i class="fas fa-image"></i> Image URL
+                            </label>
+                            <InputText id="projectImage" 
+                                       @bind-Value="newProject.ImageUrl" 
+                                       class="form-control" 
+                                       placeholder="https://example.com/image.jpg (optional)" />
+                            <ValidationMessage For="@(() => newProject.ImageUrl)" class="validation-message" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="projectDescription" class="form-label">
+                            <i class="fas fa-align-left"></i> Description *
+                        </label>
+                        <InputTextArea id="projectDescription" 
+                                       @bind-Value="newProject.Description" 
+                                       class="form-control" 
+                                       placeholder="Describe the project..."
+                                       rows="3" />
+                        <ValidationMessage For="@(() => newProject.Description)" class="validation-message" />
+                    </div>
+
+                    <div class="form-actions">
+                        @if (isSubmitting)
+                        {
+                            <button type="button" class="btn btn-primary" disabled>
+                                <i class="fas fa-spinner fa-spin"></i> Adding Project...
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Add Project
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelProjectForm">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (showEditProjectForm && editingProject != null)
+        {
+            <div class="project-form-container">
+                <div class="form-header">
+                    <h4>
+                        <i class="fas fa-edit"></i>
+                        Edit Project: @editingProject.Title
+                    </h4>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelProjectForm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <EditForm Model="editProjectModel" OnValidSubmit="HandleUpdateProject" class="project-form">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editProjectTitle" class="form-label">
+                                <i class="fas fa-heading"></i> Project Title *
+                            </label>
+                            <InputText id="editProjectTitle" 
+                                       @bind-Value="editProjectModel.Title" 
+                                       class="form-control" 
+                                       placeholder="Enter project title" />
+                            <ValidationMessage For="@(() => editProjectModel.Title)" class="validation-message" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editProjectImage" class="form-label">
+                                <i class="fas fa-image"></i> Image URL
+                            </label>
+                            <InputText id="editProjectImage" 
+                                       @bind-Value="editProjectModel.ImageUrl" 
+                                       class="form-control" 
+                                       placeholder="https://example.com/image.jpg (optional)" />
+                            <ValidationMessage For="@(() => editProjectModel.ImageUrl)" class="validation-message" />
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="editProjectDescription" class="form-label">
+                            <i class="fas fa-align-left"></i> Description *
+                        </label>
+                        <InputTextArea id="editProjectDescription" 
+                                       @bind-Value="editProjectModel.Description" 
+                                       class="form-control" 
+                                       placeholder="Describe the project..."
+                                       rows="3" />
+                        <ValidationMessage For="@(() => editProjectModel.Description)" class="validation-message" />
+                    </div>
+
+                    <div class="form-actions">
+                        @if (isSubmitting)
+                        {
+                            <button type="button" class="btn btn-primary" disabled>
+                                <i class="fas fa-spinner fa-spin"></i> Updating Project...
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Project
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelProjectForm">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        <!-- Projects Management List -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="projects-management-list">
+                    <h4>
+                        <i class="fas fa-list"></i>
+                        Manage Projects (@(userProjects?.Count ?? 0))
+                    </h4>
+                    
+                    @if (userProjects == null)
+                    {
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading projects...</span>
+                        </div>
+                    }
+                    else if (!userProjects.Any())
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-folder-open"></i>
+                            <p>No projects found. Add your first project above!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="projects-grid">
+                            @foreach (var project in userProjects)
+                            {
+                                <div class="project-management-card">
+                                    <div class="project-card-header">
+                                        @if (!string.IsNullOrEmpty(project.ImageUrl))
+                                        {
+                                            <img src="@project.ImageUrl" alt="@project.Title" class="project-card-image" />
+                                        }
+                                        else
+                                        {
+                                            <div class="project-card-placeholder">
+                                                <i class="fas fa-project-diagram"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                    
+                                    <div class="project-card-body">
+                                        <h5 class="project-card-title">@project.Title</h5>
+                                        <p class="project-card-description">
+                                            @(project.Description.Length > 100 ? project.Description.Substring(0, 100) + "..." : project.Description)
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="project-card-actions">
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => ShowEditProjectForm(project)">
+                                            <i class="fas fa-edit"></i> Edit
+                                        </button>
+                                        <AuthorizeView Roles="Admin">
+                                            <Authorized Context="adminContext">
+                                                <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteProject(project)">
+                                                    <i class="fas fa-trash"></i> Delete
+                                                </button>
+                                            </Authorized>
+                                        </AuthorizeView>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        @if (!string.IsNullOrEmpty(projectMessage))
+        {
+            <div class="alert @(projectMessageType == "success" ? "alert-success" : "alert-danger")" role="alert">
+                <i class="fas @(projectMessageType == "success" ? "fa-check-circle" : "fa-exclamation-triangle")"></i>
+                @projectMessage
+            </div>
+        }
+    </div>
+
+    <!-- Skills Management Section -->
+    <div class="skills-management-section">
+        <div class="section-header">
+            <h3>
+                <i class="fas fa-cogs"></i>
+                Skills Management
+            </h3>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="section-actions">
+                        <button class="btn btn-primary" @onclick="ShowAddSkillForm">
+                            <i class="fas fa-plus"></i> Add New Skill
+                        </button>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+        </div>
+
+        @if (showAddSkillForm)
+        {
+            <div class="skill-form-container">
+                <div class="form-header">
+                    <h4>
+                        <i class="fas fa-plus-circle"></i>
+                        Add New Skill
+                    </h4>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelSkillForm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <EditForm Model="newSkill" OnValidSubmit="HandleAddSkill" class="skill-form">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="skillName" class="form-label">
+                                <i class="fas fa-tag"></i> Skill Name *
+                            </label>
+                            <InputText id="skillName" 
+                                       @bind-Value="newSkill.Name" 
+                                       class="form-control" 
+                                       placeholder="Enter skill name (e.g., C#, React, SQL)" />
+                            <ValidationMessage For="@(() => newSkill.Name)" class="validation-message" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="skillLevel" class="form-label">
+                                <i class="fas fa-chart-line"></i> Proficiency Level *
+                            </label>
+                            <InputSelect id="skillLevel" 
+                                         @bind-Value="newSkill.Level" 
+                                         class="form-control">
+                                <option value="">Select skill level</option>
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                                <option value="Expert">Expert</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => newSkill.Level)" class="validation-message" />
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        @if (isSkillSubmitting)
+                        {
+                            <button type="button" class="btn btn-primary" disabled>
+                                <i class="fas fa-spinner fa-spin"></i> Adding Skill...
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Add Skill
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelSkillForm">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        @if (showEditSkillForm && editingSkill != null)
+        {
+            <div class="skill-form-container">
+                <div class="form-header">
+                    <h4>
+                        <i class="fas fa-edit"></i>
+                        Edit Skill: @editingSkill.Name
+                    </h4>
+                    <button class="btn btn-outline-secondary btn-sm" @onclick="CancelSkillForm">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+
+                <EditForm Model="editSkillModel" OnValidSubmit="HandleUpdateSkill" class="skill-form">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editSkillName" class="form-label">
+                                <i class="fas fa-tag"></i> Skill Name *
+                            </label>
+                            <InputText id="editSkillName" 
+                                       @bind-Value="editSkillModel.Name" 
+                                       class="form-control" 
+                                       placeholder="Enter skill name" />
+                            <ValidationMessage For="@(() => editSkillModel.Name)" class="validation-message" />
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editSkillLevel" class="form-label">
+                                <i class="fas fa-chart-line"></i> Proficiency Level *
+                            </label>
+                            <InputSelect id="editSkillLevel" 
+                                         @bind-Value="editSkillModel.Level" 
+                                         class="form-control">
+                                <option value="">Select skill level</option>
+                                <option value="Beginner">Beginner</option>
+                                <option value="Intermediate">Intermediate</option>
+                                <option value="Advanced">Advanced</option>
+                                <option value="Expert">Expert</option>
+                            </InputSelect>
+                            <ValidationMessage For="@(() => editSkillModel.Level)" class="validation-message" />
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        @if (isSkillSubmitting)
+                        {
+                            <button type="button" class="btn btn-primary" disabled>
+                                <i class="fas fa-spinner fa-spin"></i> Updating Skill...
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Update Skill
+                            </button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelSkillForm">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        }
+                    </div>
+                </EditForm>
+            </div>
+        }
+
+        <!-- Skills Management List -->
+        <AuthorizeView>
+            <Authorized>
+                <div class="skills-management-list">
+                    <h4>
+                        <i class="fas fa-list"></i>
+                        Manage Skills (@(userSkills?.Count ?? 0))
+                    </h4>
+                    
+                    @if (userSkills == null)
+                    {
+                        <div class="loading-state">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading skills...</span>
+                        </div>
+                    }
+                    else if (!userSkills.Any())
+                    {
+                        <div class="empty-state">
+                            <i class="fas fa-cogs"></i>
+                            <p>No skills found. Add your first skill above!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="skills-grid">
+                            @foreach (var skill in userSkills)
+                            {
+                                <div class="skill-management-card">
+                                    <div class="skill-card-body">
+                                        <div class="skill-info">
+                                            <h5 class="skill-card-title">
+                                                <i class="fas fa-tag"></i>
+                                                @skill.Name
+                                            </h5>
+                                            <div class="skill-level">
+                                                <span class="level-badge level-@skill.Level.ToLower()">
+                                                    <i class="fas fa-chart-line"></i>
+                                                    @skill.Level
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="skill-card-actions">
+                                            <button class="btn btn-outline-primary btn-sm" @onclick="() => ShowEditSkillForm(skill)">
+                                                <i class="fas fa-edit"></i> Edit
+                                            </button>
+                                            <AuthorizeView Roles="Admin">
+                                                <Authorized Context="adminContext">
+                                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmDeleteSkill(skill)">
+                                                        <i class="fas fa-trash"></i> Delete
+                                                    </button>
+                                                </Authorized>
+                                            </AuthorizeView>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        @if (!string.IsNullOrEmpty(skillMessage))
+        {
+            <div class="alert @(skillMessageType == "success" ? "alert-success" : "alert-danger")" role="alert">
+                <i class="fas @(skillMessageType == "success" ? "fa-check-circle" : "fa-exclamation-triangle")"></i>
+                @skillMessage
+            </div>
+        }
+    </div>
+}
+
+<div style="margin-top: 2rem;">
+    <button class="btn btn-secondary" @onclick="ReturnToProfiles">Return to Profiles</button>
+</div>
+
+
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    public PortfolioUser? mainPortfolio;
+    public List<Project>? userProjects;
+    public List<Skill>? userSkills;
+    
+    // Form state management
+    private bool showAddProjectForm = false;
+    private bool showEditProjectForm = false;
+    private bool isSubmitting = false;
+    private string? projectMessage;
+    private string? projectMessageType;
+    
+    // Skills form state management
+    private bool showAddSkillForm = false;
+    private bool showEditSkillForm = false;
+    private bool isSkillSubmitting = false;
+    private string? skillMessage;
+    private string? skillMessageType;
+    
+    // Form models
+    private ProjectFormModel newProject = new();
+    private ProjectFormModel editProjectModel = new();
+    private Project? editingProject;
+    
+    // Skills form models
+    private SkillFormModel newSkill = new();
+    private SkillFormModel editSkillModel = new();
+    private Skill? editingSkill;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPortfolioData();
+    }
+
+    private async Task LoadPortfolioData()
+    {
+        mainPortfolio = await PortfolioUserService.GetPortfolioUserByIdAsync(Id);
+        if (mainPortfolio != null)
+        {
+            userProjects = await ProjectService.GetProjectsByUserAsync(Id);
+            userSkills = await SkillService.GetSkillsByUserAsync(Id);
+        }
+    }
+
+    void ReturnToProfiles()
+    {
+        NavigationManager.NavigateTo("/profiles");
+    }
+
+    // Project form management
+    private void ShowAddProjectForm()
+    {
+        newProject = new ProjectFormModel();
+        showAddProjectForm = true;
+        showEditProjectForm = false;
+        ClearMessages();
+    }
+
+    private void ShowEditProjectForm(Project project)
+    {
+        editingProject = project;
+        editProjectModel = new ProjectFormModel
+        {
+            Title = project.Title,
+            Description = project.Description,
+            ImageUrl = project.ImageUrl
+        };
+        showEditProjectForm = true;
+        showAddProjectForm = false;
+        ClearMessages();
+    }
+
+    private void CancelProjectForm()
+    {
+        showAddProjectForm = false;
+        showEditProjectForm = false;
+        editingProject = null;
+        newProject = new ProjectFormModel();
+        editProjectModel = new ProjectFormModel();
+        ClearMessages();
+    }
+
+    private void ClearMessages()
+    {
+        projectMessage = null;
+        projectMessageType = null;
+    }
+
+    // Project CRUD operations
+    private async Task HandleAddProject()
+    {
+        if (mainPortfolio == null) return;
+
+        isSubmitting = true;
+        ClearMessages();
+
+        try
+        {
+            var project = new Project
+            {
+                Title = newProject.Title!.Trim(),
+                Description = newProject.Description!.Trim(),
+                ImageUrl = string.IsNullOrWhiteSpace(newProject.ImageUrl) ? string.Empty : newProject.ImageUrl.Trim(),
+                PortfolioUserId = mainPortfolio.Id
+            };
+
+            var createdProject = await ProjectService.AddProjectAsync(project);
+            
+            projectMessage = $"Project '{createdProject.Title}' added successfully!";
+            projectMessageType = "success";
+            
+            // Refresh projects list
+            await LoadProjectsList();
+            
+            // Reset form
+            CancelProjectForm();
+        }
+        catch (Exception ex)
+        {
+            projectMessage = $"Failed to add project: {ex.Message}";
+            projectMessageType = "error";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task HandleUpdateProject()
+    {
+        if (editingProject == null || mainPortfolio == null) return;
+
+        isSubmitting = true;
+        ClearMessages();
+
+        try
+        {
+            var project = new Project
+            {
+                Id = editingProject.Id,
+                Title = editProjectModel.Title!.Trim(),
+                Description = editProjectModel.Description!.Trim(),
+                ImageUrl = string.IsNullOrWhiteSpace(editProjectModel.ImageUrl) ? string.Empty : editProjectModel.ImageUrl.Trim(),
+                PortfolioUserId = mainPortfolio.Id
+            };
+
+            var success = await ProjectService.UpdateProjectAsync(project.Id, project);
+            
+            if (success)
+            {
+                projectMessage = $"Project '{project.Title}' updated successfully!";
+                projectMessageType = "success";
+                
+                // Refresh projects list
+                await LoadProjectsList();
+                
+                // Reset form
+                CancelProjectForm();
+            }
+            else
+            {
+                projectMessage = "Failed to update project. Please try again.";
+                projectMessageType = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            projectMessage = $"Failed to update project: {ex.Message}";
+            projectMessageType = "error";
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task ConfirmDeleteProject(Project project)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure you want to delete the project '{project.Title}'? This action cannot be undone.");
+        
+        if (confirmed)
+        {
+            await DeleteProject(project);
+        }
+    }
+
+    private async Task DeleteProject(Project project)
+    {
+        ClearMessages();
+
+        try
+        {
+            var success = await ProjectService.DeleteProjectAsync(project.Id);
+            
+            if (success)
+            {
+                projectMessage = $"Project '{project.Title}' deleted successfully!";
+                projectMessageType = "success";
+                
+                // Refresh projects list
+                await LoadProjectsList();
+            }
+            else
+            {
+                projectMessage = "Failed to delete project. Please try again.";
+                projectMessageType = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            projectMessage = $"Failed to delete project: {ex.Message}";
+            projectMessageType = "error";
+        }
+        finally
+        {
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task LoadProjectsList()
+    {
+        if (mainPortfolio != null)
+        {
+            userProjects = await ProjectService.GetProjectsByUserAsync(mainPortfolio.Id);
+        }
+    }
+
+    // Skills form management
+    private void ShowAddSkillForm()
+    {
+        newSkill = new SkillFormModel();
+        showAddSkillForm = true;
+        showEditSkillForm = false;
+        ClearSkillMessages();
+    }
+
+    private void ShowEditSkillForm(Skill skill)
+    {
+        editingSkill = skill;
+        editSkillModel = new SkillFormModel
+        {
+            Name = skill.Name,
+            Level = skill.Level
+        };
+        showEditSkillForm = true;
+        showAddSkillForm = false;
+        ClearSkillMessages();
+    }
+
+    private void CancelSkillForm()
+    {
+        showAddSkillForm = false;
+        showEditSkillForm = false;
+        editingSkill = null;
+        newSkill = new SkillFormModel();
+        editSkillModel = new SkillFormModel();
+        ClearSkillMessages();
+    }
+
+    private void ClearSkillMessages()
+    {
+        skillMessage = null;
+        skillMessageType = null;
+    }
+
+    // Skills CRUD operations
+    private async Task HandleAddSkill()
+    {
+        if (mainPortfolio == null) return;
+
+        isSkillSubmitting = true;
+        ClearSkillMessages();
+
+        try
+        {
+            var skill = new Skill
+            {
+                Name = newSkill.Name!.Trim(),
+                Level = newSkill.Level!.Trim(),
+                PortfolioUserId = mainPortfolio.Id
+            };
+
+            var createdSkill = await SkillService.AddSkillAsync(skill);
+            
+            skillMessage = $"Skill '{createdSkill.Name}' ({createdSkill.Level}) added successfully!";
+            skillMessageType = "success";
+            
+            // Refresh skills list
+            await LoadSkillsList();
+            
+            // Reset form
+            CancelSkillForm();
+        }
+        catch (Exception ex)
+        {
+            skillMessage = $"Failed to add skill: {ex.Message}";
+            skillMessageType = "error";
+        }
+        finally
+        {
+            isSkillSubmitting = false;
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearSkillMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task HandleUpdateSkill()
+    {
+        if (editingSkill == null || mainPortfolio == null) return;
+
+        isSkillSubmitting = true;
+        ClearSkillMessages();
+
+        try
+        {
+            var skill = new Skill
+            {
+                Id = editingSkill.Id,
+                Name = editSkillModel.Name!.Trim(),
+                Level = editSkillModel.Level!.Trim(),
+                PortfolioUserId = mainPortfolio.Id
+            };
+
+            var success = await SkillService.UpdateSkillAsync(skill.Id, skill);
+            
+            if (success)
+            {
+                skillMessage = $"Skill '{skill.Name}' updated successfully!";
+                skillMessageType = "success";
+                
+                // Refresh skills list
+                await LoadSkillsList();
+                
+                // Reset form
+                CancelSkillForm();
+            }
+            else
+            {
+                skillMessage = "Failed to update skill. Please try again.";
+                skillMessageType = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            skillMessage = $"Failed to update skill: {ex.Message}";
+            skillMessageType = "error";
+        }
+        finally
+        {
+            isSkillSubmitting = false;
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearSkillMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task ConfirmDeleteSkill(Skill skill)
+    {
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", 
+            $"Are you sure you want to delete the skill '{skill.Name}' ({skill.Level})? This action cannot be undone.");
+        
+        if (confirmed)
+        {
+            await DeleteSkill(skill);
+        }
+    }
+
+    private async Task DeleteSkill(Skill skill)
+    {
+        ClearSkillMessages();
+
+        try
+        {
+            var success = await SkillService.DeleteSkillAsync(skill.Id);
+            
+            if (success)
+            {
+                skillMessage = $"Skill '{skill.Name}' deleted successfully!";
+                skillMessageType = "success";
+                
+                // Refresh skills list
+                await LoadSkillsList();
+            }
+            else
+            {
+                skillMessage = "Failed to delete skill. Please try again.";
+                skillMessageType = "error";
+            }
+        }
+        catch (Exception ex)
+        {
+            skillMessage = $"Failed to delete skill: {ex.Message}";
+            skillMessageType = "error";
+        }
+        finally
+        {
+            StateHasChanged();
+            
+            // Clear message after 5 seconds
+            _ = Task.Delay(5000).ContinueWith(_ => 
+            {
+                ClearSkillMessages();
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    private async Task LoadSkillsList()
+    {
+        if (mainPortfolio != null)
+        {
+            userSkills = await SkillService.GetSkillsByUserAsync(mainPortfolio.Id);
+        }
+    }
+
+    // Form validation model
+    private class ProjectFormModel
+    {
+        [Required(ErrorMessage = "Project title is required")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Title must be between 2 and 100 characters")]
+        public string? Title { get; set; }
+
+        [Required(ErrorMessage = "Project description is required")]
+        [StringLength(1000, MinimumLength = 10, ErrorMessage = "Description must be between 10 and 1000 characters")]
+        public string? Description { get; set; }
+
+        [Url(ErrorMessage = "Please enter a valid URL")]
+        public string? ImageUrl { get; set; }
+    }
+
+    // Skills form validation model
+    private class SkillFormModel
+    {
+        [Required(ErrorMessage = "Skill name is required")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Skill name must be between 2 and 100 characters")]
+        public string? Name { get; set; }
+
+        [Required(ErrorMessage = "Skill level is required")]
+        public string? Level { get; set; }
+    }
+}

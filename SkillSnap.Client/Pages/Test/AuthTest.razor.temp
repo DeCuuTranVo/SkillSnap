@@ -1,0 +1,210 @@
+@page "/authtest"
+@using System.Security.Claims
+@inject CustomAuthenticationStateProvider AuthProvider
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3><i class="fas fa-shield-alt"></i> Authentication State Provider Test</h3>
+                    <p class="mb-0">Testing the new CustomAuthenticationStateProvider implementation</p>
+                </div>
+                <div class="card-body">
+                    <AuthorizeView>
+                        <Authorized>
+                            <div class="alert alert-success">
+                                <h4><i class="fas fa-check-circle"></i> Authenticated!</h4>
+                                <p><strong>Welcome, @context.User.Identity?.Name!</strong></p>
+                                
+                                <h5>User Claims:</h5>
+                                <ul class="list-group mb-3">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span><strong>Name:</strong></span>
+                                        <span>@context.User.Identity?.Name</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span><strong>Email:</strong></span>
+                                        <span>@context.User.FindFirst(ClaimTypes.Email)?.Value</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span><strong>Role:</strong></span>
+                                        <span>@context.User.FindFirst(ClaimTypes.Role)?.Value</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span><strong>PortfolioUserId:</strong></span>
+                                        <span>@context.User.FindFirst("PortfolioUserId")?.Value</span>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span><strong>Auth Type:</strong></span>
+                                        <span>@context.User.Identity?.AuthenticationType</span>
+                                    </li>
+                                </ul>
+
+                                <div class="mb-3">
+                                    <h5>Role-based Authorization:</h5>
+                                    <AuthorizeView Roles="Admin" Context="adminContext">
+                                        <Authorized>
+                                            <div class="alert alert-warning">
+                                                <i class="fas fa-crown"></i> You have Admin privileges!
+                                            </div>
+                                        </Authorized>
+                                        <NotAuthorized>
+                                            <div class="alert alert-info">
+                                                <i class="fas fa-user"></i> You are a regular user.
+                                            </div>
+                                        </NotAuthorized>
+                                    </AuthorizeView>
+                                </div>
+
+                                <div class="mb-3">
+                                    <h5>Provider Properties:</h5>
+                                    <ul class="list-group mb-3">
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span><strong>IsAuthenticated:</strong></span>
+                                            <span class="badge @(AuthProvider.IsAuthenticated ? "bg-success" : "bg-danger")">
+                                                @AuthProvider.IsAuthenticated
+                                            </span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span><strong>CurrentUserName:</strong></span>
+                                            <span>@(AuthProvider.CurrentUserName ?? "null")</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span><strong>CurrentUserEmail:</strong></span>
+                                            <span>@(AuthProvider.CurrentUserEmail ?? "null")</span>
+                                        </li>
+                                        <li class="list-group-item d-flex justify-content-between">
+                                            <span><strong>CurrentUserRole:</strong></span>
+                                            <span>@(AuthProvider.CurrentUserRole ?? "null")</span>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-danger" @onclick="HandleLogout">
+                                        <i class="fas fa-sign-out-alt"></i> Logout
+                                    </button>
+                                    <a href="/protected" class="btn btn-success">
+                                        <i class="fas fa-lock"></i> Test Protected Page
+                                    </a>
+                                </div>
+                            </div>
+                        </Authorized>
+                        <NotAuthorized>
+                            <div class="alert alert-warning">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Not Authenticated</h4>
+                                <p>You need to log in to test the authentication state.</p>
+                                
+                                <div class="mb-3">
+                                    <h5>Quick Test Login:</h5>
+                                    <EditForm Model="testLogin" OnValidSubmit="HandleTestLogin" Context="loginForm">
+                                        <div class="row g-2 mb-3">
+                                            <div class="col-md-4">
+                                                <InputText @bind-Value="testLogin.UserName" 
+                                                          class="form-control" 
+                                                          placeholder="Username" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <InputText @bind-Value="testLogin.Password" 
+                                                          type="password" 
+                                                          class="form-control" 
+                                                          placeholder="Password" />
+                                            </div>
+                                            <div class="col-md-4">
+                                                <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                                                    @if (isLoading)
+                                                    {
+                                                        <span class="spinner-border spinner-border-sm"></span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <i class="fas fa-sign-in-alt"></i>
+                                                    }
+                                                    Login
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        @if (!string.IsNullOrEmpty(errorMessage))
+                                        {
+                                            <div class="alert alert-danger">@errorMessage</div>
+                                        }
+                                        
+                                        @if (!string.IsNullOrEmpty(successMessage))
+                                        {
+                                            <div class="alert alert-success">@successMessage</div>
+                                        }
+                                    </EditForm>
+                                </div>
+
+                                <div class="d-flex gap-2">
+                                    <a href="/login" class="btn btn-primary">
+                                        <i class="fas fa-sign-in-alt"></i> Go to Login Page
+                                    </a>
+                                    <a href="/register" class="btn btn-outline-primary">
+                                        <i class="fas fa-user-plus"></i> Go to Register Page
+                                    </a>
+                                </div>
+                            </div>
+                        </NotAuthorized>
+                    </AuthorizeView>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private LoginRequest testLogin = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+    private string successMessage = string.Empty;
+
+    private async Task HandleTestLogin()
+    {
+        if (isLoading) return;
+
+        try
+        {
+            isLoading = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+            StateHasChanged();
+
+            var result = await AuthProvider.LoginAsync(testLogin);
+
+            if (result.IsSuccess)
+            {
+                successMessage = "Login successful! Page will refresh...";
+                StateHasChanged();
+                
+                // Small delay to show success message
+                await Task.Delay(1000);
+                
+                // Refresh the page to show the updated auth state
+                Navigation.NavigateTo("/authtest", true);
+            }
+            else
+            {
+                errorMessage = result.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleLogout()
+    {
+        await AuthProvider.LogoutAsync();
+        Navigation.NavigateTo("/authtest", true);
+    }
+}

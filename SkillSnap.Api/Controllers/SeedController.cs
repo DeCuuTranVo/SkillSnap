@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SkillSnap.Api.Data;
 using SkillSnap.Api.Models;
 namespace SkillSnap.Api.Controllers
@@ -13,9 +14,14 @@ namespace SkillSnap.Api.Controllers
                         _context = context;
                 }
                 [HttpPost]
-                public IActionResult Seed()
+                public async Task<IActionResult> Seed()
                 {
-                        if (_context.PortfolioUsers.Any())
+                        // Use AsNoTracking for read-only check
+                        var hasData = await _context.PortfolioUsers
+                                .AsNoTracking()
+                                .AnyAsync();
+                        
+                        if (hasData)
                         {
                                 return BadRequest("Sample data already exists.");
                         }
@@ -36,17 +42,17 @@ namespace SkillSnap.Api.Controllers
                                         }
                         };
                         _context.PortfolioUsers.Add(user);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         return Ok("Sample data inserted.");
                 }
 
                 [HttpDelete("all")]
-                public IActionResult DeleteAll()
+                public async Task<IActionResult> DeleteAll()
                 {
                         _context.Projects.RemoveRange(_context.Projects);
                         _context.Skills.RemoveRange(_context.Skills);
                         _context.PortfolioUsers.RemoveRange(_context.PortfolioUsers);
-                        _context.SaveChanges();
+                        await _context.SaveChangesAsync();
                         return Ok("All data deleted.");
                 }
 

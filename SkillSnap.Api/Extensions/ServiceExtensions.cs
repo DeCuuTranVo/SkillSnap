@@ -33,6 +33,9 @@ public static class ServiceExtensions
         // Database
         services.AddDatabase(configuration);
 
+        // Caching
+        services.AddCache();
+
         // Authentication
         services.AddJwtAuthentication(configuration);
 
@@ -54,6 +57,12 @@ public static class ServiceExtensions
         services.AddIdentity<ApplicationUser, IdentityRole>()
             .AddEntityFrameworkStores<SkillSnapContext>();
 
+        return services;
+    }
+
+    public static IServiceCollection AddCache(this IServiceCollection services)
+    {
+        services.AddMemoryCache();
         return services;
     }
 

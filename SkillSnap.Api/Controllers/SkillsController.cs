@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SkillSnap.Api.Data;
 using SkillSnap.Api.Models;
 using SkillSnap.Api.StaticDetails;
@@ -14,10 +15,13 @@ public class SkillsController : ControllerBase
     private readonly SkillSnapContext _context;
     private readonly ILogger<SkillsController> _logger;
 
-    public SkillsController(SkillSnapContext context, ILogger<SkillsController> logger)
+    private readonly IMemoryCache _cache;
+
+    public SkillsController(SkillSnapContext context, ILogger<SkillsController> logger, IMemoryCache cache)
     {
         _context = context;
         _logger = logger;
+        _cache = cache;
     }
 
     /// <summary>
@@ -29,16 +33,43 @@ public class SkillsController : ControllerBase
     {
         try
         {
-            var skills = await _context.Skills
-                .Include(s => s.PortfolioUser)
-                .ToListAsync();
+            // Try to get cached skills
+            if (!_cache.TryGetValue("skills", out List<Skill> skills))
+            {
+                // Not in cache, fetch from DB with navigation property
+                skills = await _context.Skills
+                    .Include(s => s.PortfolioUser)
+                    .AsNoTracking()
+                    .OrderBy(s => s.Name)
+                    .ToListAsync();
+
+                // Set cache with expiration
+                var cacheEntryOptions = new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(5));
+
+                _cache.Set("skills", skills, cacheEntryOptions);
+            }
 
             return Ok(skills);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error occurred while retrieving skills");
-            return StatusCode(500, "An error occurred while retrieving skills");
+
+            // Fallback: try to get from DB if cache failed
+            try
+            {
+                var skills = await _context.Skills
+                    .Include(s => s.PortfolioUser)
+                    .AsNoTracking()
+                    .OrderBy(s => s.Name)
+                    .ToListAsync();
+                return Ok(skills);
+            }
+            catch
+            {
+                return StatusCode(500, "An error occurred while retrieving skills");
+            }
         }
     }
 
@@ -54,6 +85,7 @@ public class SkillsController : ControllerBase
         {
             var skill = await _context.Skills
                 .Include(s => s.PortfolioUser)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == id);
 
             if (skill == null)
@@ -81,7 +113,10 @@ public class SkillsController : ControllerBase
         try
         {
             // First check if the user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == portfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == portfolioUserId);
+                
             if (!userExists)
             {
                 return NotFound($"Portfolio user with ID {portfolioUserId} not found");
@@ -89,7 +124,9 @@ public class SkillsController : ControllerBase
 
             var skills = await _context.Skills
                 .Include(s => s.PortfolioUser)
+                .AsNoTracking()
                 .Where(s => s.PortfolioUserId == portfolioUserId)
+                .OrderBy(s => s.Name)
                 .ToListAsync();
 
             return Ok(skills);
@@ -113,7 +150,9 @@ public class SkillsController : ControllerBase
         {
             var skills = await _context.Skills
                 .Include(s => s.PortfolioUser)
+                .AsNoTracking()
                 .Where(s => s.Level.ToLower() == level.ToLower())
+                .OrderBy(s => s.Name)
                 .ToListAsync();
 
             return Ok(skills);
@@ -137,7 +176,10 @@ public class SkillsController : ControllerBase
         try
         {
             // Validate that the portfolio user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == skill.PortfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == skill.PortfolioUserId);
+                
             if (!userExists)
             {
                 return BadRequest($"Portfolio user with ID {skill.PortfolioUserId} does not exist");
@@ -158,6 +200,7 @@ public class SkillsController : ControllerBase
             // Reload the skill with navigation properties
             var createdSkill = await _context.Skills
                 .Include(s => s.PortfolioUser)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.Id == skill.Id);
 
             return CreatedAtAction(
@@ -190,14 +233,19 @@ public class SkillsController : ControllerBase
         try
         {
             // Check if skill exists
-            var existingSkill = await _context.Skills.FindAsync(id);
+            var existingSkill = await _context.Skills
+                .FirstOrDefaultAsync(s => s.Id == id);
+                
             if (existingSkill == null)
             {
                 return NotFound($"Skill with ID {id} not found");
             }
 
             // Validate that the portfolio user exists
-            var userExists = await _context.PortfolioUsers.AnyAsync(u => u.Id == skill.PortfolioUserId);
+            var userExists = await _context.PortfolioUsers
+                .AsNoTracking()
+                .AnyAsync(u => u.Id == skill.PortfolioUserId);
+                
             if (!userExists)
             {
                 return BadRequest($"Portfolio user with ID {skill.PortfolioUserId} does not exist");
@@ -236,7 +284,9 @@ public class SkillsController : ControllerBase
     {
         try
         {
-            var skill = await _context.Skills.FindAsync(id);
+            var skill = await _context.Skills
+                .FirstOrDefaultAsync(s => s.Id == id);
+                
             if (skill == null)
             {
                 return NotFound($"Skill with ID {id} not found");

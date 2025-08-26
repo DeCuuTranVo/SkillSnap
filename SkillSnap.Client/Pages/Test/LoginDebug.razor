@@ -1,4 +1,7 @@
 @page "/logindebug"
+@using System.Text.Json
+
+@inject CustomAuthenticationStateProvider AuthProvider
 @inject AuthService AuthService
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
